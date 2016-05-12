@@ -1,5 +1,5 @@
 """
-Eigenvalue Decompositions using different methods found 
+Eigenvalue Decompositions using different methods found
 from Python packages and codes
 """
 # Authors: Eman Johnson
@@ -18,16 +18,16 @@ from sklearn.utils import check_array
 
 class EigSolver(object):
     """A class of eigenvalue decomposition algorithms.
-    
+
     Parameters
     ----------
     n_components : integer
         number of coordinates for the manifold
-    
+
     eig_method : str ['dense'|'robust'|'arpack'|'multi']
-        some methods to choose from when solving the eigenvalue 
+        some methods to choose from when solving the eigenvalue
         decomposition problem
-    
+
     TODO: 'rsvd'
     TODO: better functions to capture variables
     """
@@ -43,59 +43,59 @@ class EigSolver(object):
          self.tol = tol
          self.norm_laplace = norm_laplace
 
-         
+
     def find_eig(self, A, B=None):
-         
+
          if self.sparse and self.eig_solver not in ['arpack', 'multi']:
              self.eig_solver = 'arpack'
          elif not self.sparse and self.eig_solver not in ['robust', 'dense']:
              self.eig_solver = 'dense'
 
          if self.eig_solver == 'robust' and not self.sparse:
-             
+
              eigVals, eigVecs = eigh_robust(a=A, b=B,
                                         eigvals=(0, self.n_components-1))
 
 
-                 
+
          elif self.eig_solver == 'dense':
-             
-             eigVals, eigVecs = eig_dense(A=A, B=B, 
+
+             eigVals, eigVecs = eig_dense(A=A, B=B,
                                           k_dims=self.n_components)
          elif self.eig_solver == 'arpack':
-            
+
             eigVals, eigVecs =  eig_scipy(A=A,
                                           B=B,
                                           n_components=self.n_components)
-                                               
+
          elif self.eig_solver == 'multi':
-            
+
             eigVals, eigVecs = eig_multi(A=A,
                                          B=B,
-                                          n_components=self.n_components, 
+                                          n_components=self.n_components,
                                           tol=self.tol)
-                                          
+
          elif self.eig_solver == 'rsvd':
              _, eigVals, eigVecs = r_svd(M=A,
                                             n_components=self.n_components)
          else:
              raise ValueError('Unrecognizable Eigenvalue Method.')
-             
+
          return eigVals, eigVecs
-         
-         
-         
+
+
+
 
 #--------------------------------------
 # Scipy - ARPACK Dense (small)
 #--------------------------------------
 def eig_dense(A, B=None, k_dims=2):
-    
+
     return eigh(a=A,
                 b=B,
                 eigvals=(1, k_dims),
                 type=1)
-    
+
 #--------------------------------------
 # Scipy - ARPACK Sparse
 #--------------------------------------
@@ -103,20 +103,20 @@ def eig_scipy(A, B=None, n_components=2+1, method='arpack'):
     """
 
     """
-    # There is a bug for a low number of nodes for this solver
-    # calculate more eigenvalues than necessary
-    if n_components <= 10:
-        numEigs = n_components+15
+    # # There is a bug for a low number of nodes for this solver
+    # # calculate more eigenvalues than necessary
+    if n_components <= 10 and np.shape(A)[0] >= int(20):
+        n_components = n_components+15
     else:
-        numEigs = n_components
+        n_components = n_components
 
     # check to make sure the number of eigs is less than dim of A
-    assert numEigs <= A.shape[0], \
-    'Number of components less than or equal to A'
+    print('The number of components {n}'.format(n=n_components))
+
 
     # Solve using the eigenvale method
     eigenvalues, eigenvectors = eigsh(A=A,
-                                          k=numEigs,
+                                          k=n_components,
                                           M=B,
                                           which='SM')
 
@@ -132,21 +132,21 @@ def eig_multi(A, B=None, n_components=2+1, tol=1E-12):
     instabilities sometimes.
     """
     # convert matrix A and B to float
-    A = A.astype(np.float64); 
-    
+    A = A.astype(np.float64);
+
     if B is not None:
         B = B.astype(np.float64)
-    
+
     # import the solver
     ml = smoothed_aggregation_solver(A)
-    
+
     # preconditioner
     M = ml.aspreconditioner()
-    
+
     # initial guess for X
     np.random.RandomState(seed=1234)
     X = np.random.rand(A.shape[0], n_components+1)
-    
+
     # solve using the lobpcg algorithm
     eigenvalues, eigenvectors = lobpcg(A, X, M=M, B=B,
                                        tol=tol,
@@ -251,5 +251,3 @@ def eigh_robust(a, b=None, eigvals=None, eigvals_only=False,
     else:
         evals, evecs = output
         return evals, np.dot(U, Sinv[:, None] * evecs)
-        
-

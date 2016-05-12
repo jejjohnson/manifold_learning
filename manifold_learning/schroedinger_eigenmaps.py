@@ -72,7 +72,7 @@ class SchroedingerEigenmaps(BaseEstimator, TransformerMixin):
                  metric = 'euclidean',
                  n_jobs = 1,
                  weight = 'heat',
-                 affinity = 'none',
+                 affinity = None,
                  gamma = 1.0,
                  trees = 10,
 
