@@ -10,15 +10,9 @@ from sklearn.utils.graph import graph_laplacian
 from nearestneighbor_solver import knn_scikit, knn_annoy
 
 # compute the weighted adjacency matrix
-def compute_adjacency(X,
-                    n_neighbors=5,
-                    affinity=None,
-                    weight='heat',
-                    sparse=False,
-                    neighbors_algorithm='brute',
-                    metric='euclidean',
-                    trees=10,
-                    gamma=1.0):
+def compute_adjacency(X, n_neighbors=5, affinity=None,weight='heat',
+                      sparse=False, neighbors_algorithm='brute',
+                      metric='euclidean', trees=10, gamma=1.0):
      
      
      #-----------------------------------
@@ -63,11 +57,9 @@ def compute_adjacency(X,
          
      else:
          raise ValueError('Sorry. Unrecognized affinity weight')
+     
+     return W
 
-     if sparse:
-         return W
-     else:
-         return W.todense() 
 
 # Create Sparse Weighted Adjacency Matrix
 def create_adjacency(distance_vals, indices):
@@ -125,64 +117,43 @@ def maximum(A,B):
 # Find the Laplacian Matrix from an Adjacency Matrix
 def create_laplacian(Adjacency, 
                      norm_lap=None,
-                     method=None,
+                     method='Personal',
                      sparse=None):
     """Finds the Graph Laplacian from a Weighted Adjacency Matrix
 
     Parameters
     ----------
-    * Adjacency       - an NxN array
+    * Adjacency       - a sparse NxN array
 
     Returns
     -------
     * Laplacian       - an NxN laplacian array
     * Diagonal        - an NxN diagonal array
     """
-
+    
     if method in ['personal', 'Personal']:
-            
-        # D is equal to the sum of the rows of W
-        try:
-            D = np.squeeze(np.asarray(Adjacency.sum(axis=0)))
-        except:
-            
-            D = np.diag(np.sum(Adjacency,axis=1))
-    
-    
-        return diags(D, 0, (D.shape[0], D.shape[0]), format='csr') - \
-                Adjacency, diags(D, 0, (D.shape[0], D.shape[0]), format='csr')
-    elif method in ['scikit', 'sklearn']:
         
-        if norm_lap:
-            return_diag, D = None, None
-            L, _ = graph_laplacian(Adjacency,
-                                   normed=norm_lap,
-                                   return_diag=return_diag)
-            return L, D
-        else:
-            return_diag = True
-            L, D = graph_laplacian(Adjacency,
-                                   normed=norm_lap,
-                                   return_diag=return_diag)
+        D = spdiags(data=np.squeeze(np.asarray(Adjacency.sum(axis=1))),
+                    diags=[0],
+                    m=Adjacency.shape[0],
+                    n=Adjacency.shape[0])
+        return D-Adjacency, D
         
-        if sparse:
-            try:
-                L = csr_matrix(L)
-                D = diags(D, [0], shape=(L))                
-                return L, D
-            except:
-                return L, diags(D, [0], shape=(L)) 
-        else:
-            try:
-                L = np.asarray(L)
-                D = np.diag(D)
-                return L, D
-            except:
-                return L, np.diag(D)
-            
         
-    else:
-        raise ValueError('Need a method of graph construction.')
+    elif method in ['sklearn', 'scikit']:
+        
+        L, D = graph_laplacian(Adjacency, normed=norm_lap,
+                               return_diag=True)
+        D = spdiags(data=D,
+                    diags=[0],
+                    m=Adjacency.shape[0],
+                    n=Adjacency.shape[0])
+        return L, D
+        
+    else: 
+        raise ValueError('Unrecognized Graph Laplacian method'
+        'construction.')
+
 
                     
 # create feature based matrix
@@ -217,3 +188,58 @@ def create_feature_mat(X,A, sparse=None):
             
         except:
             return np.dot(X.T, np.dot(A,X))
+def laplacian_test():
+    from sklearn.datasets import make_sparse_spd_matrix, make_spd_matrix
+    from sklearn.preprocessing import MinMaxScaler
+    from scipy.sparse import csr_matrix, linalg
+    import time as time
+    import matplotlib.pyplot as plt
+#    plt.style.use('ggplot')
+
+    
+    A = csr_matrix(make_spd_matrix(100))
+
+    L, D, t = [], [], []
+    for method in ['personal', 'sklearn']:
+        t0 = time.time()
+        temp_L, temp_D = create_laplacian(A, method=method)
+        t1 = time.time()
+        L.append(temp_L); D.append(temp_D)
+        t.append(t1-t0)
+    
+    
+    
+    fig, ax = plt.subplots(nrows=1, ncols=2)
+    
+
+    
+    ax[0].spy(L[0], precision=1E-10, markersize=.2)
+    ax[0].set_title('My Method; {t:.2e} secs'.format(t=t[0]))
+    ax[1].spy(L[1], precision=1E-10, markersize=.2)
+    ax[1].set_title('Sklearn; {t:.2e} secs'.format(t=t[1]))
+    
+    print np.shape(L[0]), np.shape(L[1])
+    tol = 1E-12
+    print('Different between the Laplacian Matrix' \
+            'values close with tol: {tol}?'.format(tol=tol))
+    
+    assert (np.allclose(L[0].data, L[1].data)), "False Laplacians not" \
+    "the same."
+    print('Test passed.')
+
+    
+    plt.show()
+    
+    
+if __name__ == "__main__":
+    laplacian_test()
+    
+
+
+
+    
+
+    
+#    L, D = create_laplacian(A, norm_lap=None,
+#                            method='Personal',
+#                            sparse=None)

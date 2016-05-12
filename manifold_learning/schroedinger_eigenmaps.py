@@ -14,11 +14,11 @@ import numpy as np
 from scipy import sparse
 from scipy.sparse import csr_matrix, csc_matrix, spdiags, identity
 
-from nearestneighbor_solver import knn_scikit, knn_annoy
-from graph_construction import create_laplacian, create_adjacency, \
+from utils.nearestneighbor_solver import knn_scikit, knn_annoy
+from utils.graph_construction import create_laplacian, create_adjacency, \
                                create_feature_mat, maximum, \
                                compute_adjacency
-from eigenvalue_decomposition import EigSolver
+from utils.eigenvalue_decomposition import EigSolver
 
 import pandas as pd
 
@@ -143,8 +143,7 @@ class SchroedingerEigenmaps(BaseEstimator, TransformerMixin):
                                n_neighbors=self.n_neighbors,
                                weight=self.weight,
                                affinity=self.affinity,
-                               neighbors_algorithm=self.neighbors_algorithm,
-                               sparse = self.sparse)
+                               neighbors_algorithm=self.neighbors_algorithm)
 
          # compute potential matrix
          self.V_s = self._potential(X, y=y, X_img=X_img)
@@ -201,8 +200,7 @@ class SchroedingerEigenmaps(BaseEstimator, TransformerMixin):
                                
              # return the spatial-spectral potential matrix        
              return ssse_potential(X, X_spatial, V_ind,
-                                   weight=self.sp_affinity,
-                                   sparse=self.sparse)
+                                   weight=self.sp_affinity)
              
          # create the similarity potential matrix
          elif self.potential == 'similarity':
@@ -275,9 +273,8 @@ class SchroedingerEigenmaps(BaseEstimator, TransformerMixin):
         # create the laplacian and diagonal degree matrix
         self.L, self.D = create_laplacian(W,
                                           norm_lap=self.norm_lap,
-                                          method='personal',
-                                          sparse=self.sparse)
-        
+                                          method='personal')
+
         # tune the generalized eigenvalue problem with parameters
         A, B = self._embedding_tuner()
 
@@ -342,8 +339,7 @@ def ssse_potential(data,
                    weight='heat',
                    sp_weight='heat',
                    sigma=1.0,
-                   eta=1.0,
-                   sparse=True):
+                   eta=1.0):
     """Constructs the: Schroedinger Spatial-Spectral Cluster Potential    
 
     Parameters
@@ -454,11 +450,9 @@ def ssse_potential(data,
     # Compute the Diagonal Elements of Potential Matrix, V
     V_diags = spdiags( -V_sparse.sum(axis=1).T, 0, N, N)
 
-    # Return the Potential Matrix V
-    if sparse:
-        return V_diags + V_sparse    
-    else:
-        return V_diags.toarray() + V_sparse.toarray()
+    # Return the sparse Potential Matrix V
+    return V_diags+V_sparse
+
 
 # create similarity and dissimilarity potential matrices
 def sim_potential(X, potential='sim',
@@ -595,10 +589,8 @@ def get_alpha(alpha, L, V):
     and the Potential Matrix
 
     """
-    try:
-        return alpha * ( np.trace(L.todense()) / np.trace(V.todense()))
-    except:
-        return alpha * (np.trace(L) / np.trace(V))
+    return alpha * ( np.trace(L.todense()) / np.trace(V.todense()))
+
 
 # swiss roll test to test out my function versus theirs
 def swiss_roll_test():
