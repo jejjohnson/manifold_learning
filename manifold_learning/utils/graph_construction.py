@@ -192,7 +192,7 @@ def laplacian_test():
     from scipy.sparse import csr_matrix, linalg
     import time as time
     import matplotlib.pyplot as plt
-#    plt.style.use('ggplot')
+    plt.style.use('ggplot')
 
 
     A = csr_matrix(make_spd_matrix(100))
