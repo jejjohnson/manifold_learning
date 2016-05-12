@@ -13,3 +13,15 @@ TODO:
 * Include references
 * Upload Code
 * List necessary python packages
+
+
+---
+
+##### Packages Used
+
+* sklearn
+* numpy
+* scipy
+* pandas
+* annoy
+* pyamg
