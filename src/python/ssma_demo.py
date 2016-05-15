@@ -8,8 +8,6 @@ from utils.classification_list import lda_pred, accuracy_stats
 # accuracy
 def test_ma_gaussian(ma_method='wang', n_components=2, plot=False):
 
-
-
     # define some dictionaries with empty labeled lists
     X ={}; Y={};
     X['label'] = []; X['unlabel'] = []; X['test'] = []
