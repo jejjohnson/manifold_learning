@@ -6,7 +6,7 @@ from utils.classification_list import lda_pred, accuracy_stats
 
 # my test function to see if it works. Should be in the 80s range of
 # accuracy
-def test_ma_gaussian(ma_method='wang', n_components=2):
+def test_ma_gaussian(ma_method='wang', n_components=2, plot=False):
 
 
 
@@ -19,7 +19,7 @@ def test_ma_gaussian(ma_method='wang', n_components=2):
     # assign labels from gaussian dataset
     X1, X2, XT1, XT2, \
     Y1, Y2, YT1, YT2, \
-    U1, U2 = generate_gaussian()
+    U1, U2 = generate_gaussian(plot_data=plot)
 
 
     # create appropriate data structures based off of
@@ -76,4 +76,4 @@ def test_ma_gaussian(ma_method='wang', n_components=2):
 
 if __name__ == "__main__":
 
-    test_ma_gaussian(ma_method='ssma', n_components=3)
+    test_ma_gaussian(ma_method='ssma', n_components=3, plot=True)
