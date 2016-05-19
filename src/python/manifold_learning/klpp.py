@@ -3,6 +3,8 @@ from __future__ import absolute_import
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_array
+from sklearn.preprocessing import KernelCenterer
+from sklearn.metrics.pairwise import pairwise_kernels
 
 import numpy as np
 from scipy import sparse
@@ -15,9 +17,11 @@ from utils.graph_construction import create_laplacian, create_adjacency, \
 from utils.eigenvalue_decomposition import EigSolver
 
 
-class LocalityPreservingProjections(BaseEstimator, TransformerMixin):
-    """ Scikit-Learn compatible class for Schroedinger Eigenmaps
+class KernelLocalityPreservingProjections(BaseEstimator, TransformerMixin):
+    """ Scikit-Learn compatible class for Kernel Locality Preserving
+    Projections.
     TODO: Parameters and Returns
+
     """
     def __init__(self,
                  # eigenvalue solver initials
@@ -38,7 +42,13 @@ class LocalityPreservingProjections(BaseEstimator, TransformerMixin):
                  trees = 10,
                  # general problem parameters
                  sparse = False,
-                 random_state = 0):
+                 random_state = 0,
+                 # kernel matrix parameters
+                 kernel = "linear",
+                 degree_kernel = 3,
+                 gamma_kernel = None,
+                 coef0_kernel = 1,
+                 n_jobs_kernel = 1):
         self.n_components = n_components
         self.eig_solver = eig_solver
         self.norm_lap = norm_lap
@@ -52,8 +62,12 @@ class LocalityPreservingProjections(BaseEstimator, TransformerMixin):
         self.affinity = affinity
         self.gamma = gamma
         self.trees = trees
-        self.sparse = sparse,
-        self.random_state = random_state
+        self.sparse = sparse
+        self.kernel = kernel
+        self.degree_kernel = degree_kernel
+        self.gamma_kernel = gamma_kernel
+        self.coef0_kernel = coef0_kernel
+        self.n_jobs_kernel = n_jobs_kernel
 
     def fit(self, X, y=None):
 
@@ -61,7 +75,6 @@ class LocalityPreservingProjections(BaseEstimator, TransformerMixin):
         # check the array
         X = check_array(X)
 
-        # compute the adjacency matrix for X
         W = compute_adjacency(X,
                               n_neighbors=self.n_neighbors,
                               weight=self.weight,
@@ -71,44 +84,74 @@ class LocalityPreservingProjections(BaseEstimator, TransformerMixin):
                               gamma=self.gamma,
                               trees=self.trees,
                               n_jobs=self.n_jobs)
+        print('Computing Kernel Matrix...')
+        K = self._get_kernel(X)
+        K_model = KernelCenterer()
+        K_model.fit(K)
+        K = K_model.transform(K)
+        print('Done!')
 
         # compute the projections into the new space
-        _, self.projection_ = self._spectral_embedding(X, W)
+        _, self.projection_ = self._spectral_embedding(K, W)
 
         return self
 
-    def transform(self, X):
+    def transform(self, X, y=None):
+        """Transform X.
+        """
 
-        # check the array and see if it satisfies the requirements
+        # check the array X
         X = check_array(X)
-        if self.sparse:
-            return X.dot(self.projection_)
-        else:
-            return np.dot(X, self.projection_)
 
-    def _spectral_embedding(self, X, W):
+        # get kernel matrix
+
+        print('Projecting Data...')
+        K = self._get_kernel(X, y)
+        K_model = KernelCenterer()
+        K_model.fit(K)
+        K = K_model.transform(K)
+        print('Done!')
+
+        return K.dot(self.projection_)
+
+
+    def _get_kernel(self, X, y=None):
+        params = {"gamma": self.gamma_kernel,
+                  "degree": self.degree_kernel,
+                  "coef0": self.coef0_kernel}
+        return pairwise_kernels(X, Y=y, metric=self.kernel,
+                                n_jobs=self.n_jobs_kernel,
+                                filter_params=True, **params)
+
+    def _spectral_embedding(self, K, W):
 
         # create the laplacian and diagonal degree matrix
         self.L, self.D = create_laplacian(W, norm_lap=self.norm_lap,
                                           method='sklearn')
 
-        # tune the generalized eigenvalue problem with necessary parameters
-        A, B = self._embedding_tuner(X)
+        # tune the generalized eigenvalue problem with necessary
+        # parameters
+        print('Tuning Eigenvalue Problem...')
+        A, B = self._embedding_tuner(K)
+        print('Done!')
 
-        # Fit the generalized eigenvalue problem object to the parameters
+        # Fit the generalized eigenvalue problem object to the
+        # parameters
+
+        print('Solving Eigenvalue Problem...')
         eig_model = EigSolver(n_components=self.n_components,
                               eig_solver=self.eig_solver,
-                              sparse=self.sparse,
+                              sparse=True,
                               tol=self.tol,
                               norm_laplace=self.norm_lap)
 
         # return the eigenvalues and eigenvectors
         return eig_model.find_eig(A=A, B=B)
 
-    def _embedding_tuner(self, X):
+    def _embedding_tuner(self, K):
 
-        # choose which normalization paramter to use
-        if self.normalization == 'identity':
+        # choose which normalization parameter to use
+        if self.normalization == 'identiy':
 
             B = identity(n=np.shape(self.L)[0], format='csr')
 
@@ -116,11 +159,9 @@ class LocalityPreservingProjections(BaseEstimator, TransformerMixin):
             B = self.D
 
         # create feature matrices
-        A = create_feature_mat(X, self.L)
-        B = create_feature_mat(X, B)
+        A = K.dot(self.L.dot(K))
+        B = K.dot(B.dot(K))
+
 
         # get the sparsity cases
-        if not self.sparse:
-            return A.toarray(), B.toarray()
-        else:
-            return A, B
+        return A, B

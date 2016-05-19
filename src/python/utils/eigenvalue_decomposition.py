@@ -106,12 +106,9 @@ def eig_scipy(A, B=None, n_components=2+1, method='arpack'):
     # # There is a bug for a low number of nodes for this solver
     # # calculate more eigenvalues than necessary
     if n_components <= 10 and np.shape(A)[0] >= int(20):
-        n_components = n_components+15
+        n_components = int(0.75*np.shape(A)[0])
     else:
         n_components = n_components
-
-    # check to make sure the number of eigs is less than dim of A
-    print('The number of components {n}'.format(n=n_components))
 
 
     # Solve using the eigenvale method

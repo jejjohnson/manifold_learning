@@ -186,49 +186,49 @@ def create_feature_mat(X,A, sparse=None):
 
         except:
             return np.dot(X.T, np.dot(A,X))
-def laplacian_test():
-    from sklearn.datasets import make_sparse_spd_matrix, make_spd_matrix
-    from sklearn.preprocessing import MinMaxScaler
-    from scipy.sparse import csr_matrix, linalg
-    import time as time
-    import matplotlib.pyplot as plt
-    plt.style.use('ggplot')
-
-
-    A = csr_matrix(make_spd_matrix(100))
-
-    L, D, t = [], [], []
-    for method in ['personal', 'sklearn']:
-        t0 = time.time()
-        temp_L, temp_D = create_laplacian(A, method=method)
-        t1 = time.time()
-        L.append(temp_L); D.append(temp_D)
-        t.append(t1-t0)
-
-
-
-    fig, ax = plt.subplots(nrows=1, ncols=2)
-
-
-
-    ax[0].spy(L[0], precision=1E-10, markersize=.2)
-    ax[0].set_title('My Method; {t:.2e} secs'.format(t=t[0]))
-    ax[1].spy(L[1], precision=1E-10, markersize=.2)
-    ax[1].set_title('Sklearn; {t:.2e} secs'.format(t=t[1]))
-
-    print np.shape(L[0]), np.shape(L[1])
-    tol = 1E-12
-    print('Different between the Laplacian Matrix' \
-            'values close with tol: {tol}?'.format(tol=tol))
-
-    assert (np.allclose(L[0].data, L[1].data)), "False Laplacians not" \
-    "the same."
-    print('Test passed.')
-
-
-    plt.show()
-
-
-if __name__ == "__main__":
-    # sanity test
-    laplacian_test()
+# def laplacian_test():
+#     from sklearn.datasets import make_sparse_spd_matrix, make_spd_matrix
+#     from sklearn.preprocessing import MinMaxScaler
+#     from scipy.sparse import csr_matrix, linalg
+#     import time as time
+#     import matplotlib.pyplot as plt
+#     plt.style.use('ggplot')
+#
+#
+#     A = csr_matrix(make_spd_matrix(100))
+#
+#     L, D, t = [], [], []
+#     for method in ['personal', 'sklearn']:
+#         t0 = time.time()
+#         temp_L, temp_D = create_laplacian(A, method=method)
+#         t1 = time.time()
+#         L.append(temp_L); D.append(temp_D)
+#         t.append(t1-t0)
+#
+#
+#
+#     fig, ax = plt.subplots(nrows=1, ncols=2)
+#
+#
+#
+#     ax[0].spy(L[0], precision=1E-10, markersize=.2)
+#     ax[0].set_title('My Method; {t:.2e} secs'.format(t=t[0]))
+#     ax[1].spy(L[1], precision=1E-10, markersize=.2)
+#     ax[1].set_title('Sklearn; {t:.2e} secs'.format(t=t[1]))
+#
+#     print np.shape(L[0]), np.shape(L[1])
+#     tol = 1E-12
+#     print('Different between the Laplacian Matrix' \
+#             'values close with tol: {tol}?'.format(tol=tol))
+#
+#     assert (np.allclose(L[0].data, L[1].data)), "False Laplacians not" \
+#     "the same."
+#     print('Test passed.')
+#
+#
+#     plt.show()
+#
+#
+# if __name__ == "__main__":
+#     # sanity test
+#     laplacian_test()
