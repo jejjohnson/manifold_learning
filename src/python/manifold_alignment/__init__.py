@@ -1,0 +1,2 @@
+
+from .ssma import ManifoldAlignment

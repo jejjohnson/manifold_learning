@@ -1,4 +1,5 @@
 from __future__ import division
+from __future__ import absolute_import
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_array
