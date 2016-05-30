@@ -16,8 +16,45 @@ from utils.eigenvalue_decomposition import EigSolver
 
 
 class LocalityPreservingProjections(BaseEstimator, TransformerMixin):
-    """ Scikit-Learn compatible class for Schroedinger Eigenmaps
-    TODO: Parameters and Returns
+    """ Scikit-Learn compatible class for Locality Preserving Projections
+
+    Parameters
+    ----------
+
+    n_components : integer, optional, default=2
+        number of features for the manifold (=< features of data)
+
+    eig_solver : string ['dense', 'multi', 'sparse'], optional, default='dense'
+        eigenvalue solver method
+
+    norm_lap : bool, optional, default=False
+        normalized laplacian or not
+
+    tol : float, optional, default=1E-12
+        stopping criterion for eigenvalue decomposition of the Laplacian matrix
+        when using arpack or multi
+
+    normalization : string ['degree', 'identity'], default = None ('degree')
+        normalization parameter for eigenvalue problem
+
+    n_neighbors :
+
+    Attributes
+    ----------
+
+    _spectral_embedding :
+
+    _embedding_tuner :
+
+
+    References
+    ----------
+
+    Original Paper:
+        http://www.cad.zju.edu.cn/home/xiaofeihe/LPP.html
+    Inspired by Dr. Jake Vanderplas' Implementation:
+        https://github.com/jakevdp/lpproj
+
     """
     def __init__(self,
                  # eigenvalue solver initials

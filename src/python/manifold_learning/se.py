@@ -44,13 +44,15 @@ class SchroedingerEigenmaps(BaseEstimator, TransformerMixin):
 
     gamma : integer
 
-    Reference
-    ---------
+    References
+    ----------
 
-    Schroedinger Eigenmaps for the Analysis of Bio-Medical Data
+    * Schroedinger Eigenmaps for the Analysis of Bio-Medical Data
+        http://arxiv.org/pdf/1102.4086.pdf
 
-    Schroedinger Eigenmaps w/ Nondiagonal Potentials for Spatial-Spectral
-    Clustering of Hyperspectral Imagery
+    * Schroedinger Eigenmaps w/ Nondiagonal Potentials for Spatial-Spectral
+      Clustering of Hyperspectral Imagery
+        https://people.rit.edu/ndcsma/pubs/SPIE_May_2014.pdf
 
 
     """
