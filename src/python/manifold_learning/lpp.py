@@ -8,7 +8,7 @@ import numpy as np
 from scipy import sparse
 from scipy.sparse import csr_matrix, spdiags, identity
 
-from utils.graph_construction import create_laplacian, create_adjacency, \
+from utils.graph import create_laplacian, create_adjacency, \
                                      create_feature_mat, maximum, \
                                      compute_adjacency
 
@@ -60,9 +60,11 @@ class LocalityPreservingProjections(BaseEstimator, TransformerMixin):
                  # eigenvalue solver initials
                  n_components=2,
                  eig_solver = 'dense',
-                 norm_lap = False,
-                 tol = 1E-12,
+                 norm_laplace = False,
+                 eigen_tol = 1E-12,
                  # eigenvalue tuner initials
+                 regularizer = None,
+                 lap_method = 'sklearn',
                  normalization = None,
                  # knn problem initials
                  n_neighbors = 2,
@@ -74,12 +76,14 @@ class LocalityPreservingProjections(BaseEstimator, TransformerMixin):
                  gamma = 1.0,
                  trees = 10,
                  # general problem parameters
-                 sparse = False,
+                 sparse = True,
                  random_state = 0):
         self.n_components = n_components
         self.eig_solver = eig_solver
-        self.norm_lap = norm_lap
-        self.tol = tol
+        self.regularizer = regularizer
+        self.lap_method = lap_method
+        self.norm_laplace = norm_laplace
+        self.eigen_tol = eigen_tol
         self.normalization = normalization
         self.n_neighbors = n_neighbors
         self.neighbors_algorithm = neighbors_algorithm
@@ -110,7 +114,7 @@ class LocalityPreservingProjections(BaseEstimator, TransformerMixin):
                               n_jobs=self.n_jobs)
 
         # compute the projections into the new space
-        _, self.projection_ = self._spectral_embedding(X, W)
+        self.eigVals, self.projection_ = self._spectral_embedding(X, W)
 
         return self
 
@@ -125,42 +129,75 @@ class LocalityPreservingProjections(BaseEstimator, TransformerMixin):
 
     def _spectral_embedding(self, X, W):
 
-        # create the laplacian and diagonal degree matrix
-        self.L, self.D = create_laplacian(W, norm_lap=self.norm_lap,
-                                          method='sklearn')
+        # find the eigenvalues and eigenvectors
+        return linear_graph_embedding(adjacency=W, data=X,
+                                      norm_laplace=self.norm_laplace,
+                                      lap_method=self.lap_method,
+                                      normalization=self.normalization,
+                                      regularizer=self.regularizer,
+                                      n_components=self.n_components,
+                                      eig_solver=self.eig_solver,
+                                      eigen_tol=self.eigen_tol,
+                                      sparse=self.sparse,
+                                      random_state=self.random_state)
 
-        # tune the generalized eigenvalue problem with necessary parameters
-        A, B = self._embedding_tuner(X)
 
-        # Fit the generalized eigenvalue problem object to the parameters
-        eig_model = EigSolver(n_components=self.n_components,
-                              eig_solver=self.eig_solver,
-                              sparse=self.sparse,
-                              tol=self.tol,
-                              norm_laplace=self.norm_lap)
+def linear_graph_embedding(adjacency, data,
+                           norm_laplace = None,
+                           lap_method = 'sklearn',
+                           normalization='degree',
+                           regularizer=None,
+                           reg_param=None,
+                           n_components=2,
+                           eig_solver=None,
+                           eigen_tol=1E-12,
+                           sparse=True,
+                           random_state=None):
+    """
 
-        # return the eigenvalues and eigenvectors
-        return eig_model.find_eig(A=A, B=B)
+    Returns
+    -------
+    eigenvalues
+    eigenvectors
+    time elapse
 
-    def _embedding_tuner(self, X):
+    """
+    # create laplacian and diagonal degree matrix
+    L, D = create_laplacian(adjacency, norm_lap=norm_laplace,
+                            method=lap_method)
 
-        # choose which normalization paramter to use
-        if self.normalization == 'identity':
+    #----------------------------
+    # tune the eigenvalue problem
+    #----------------------------
+    # choose which normalization parameter to use
+    if normalization in ['degree', 'Degree', None]:
+        B = D
+    elif normalization in ['identity']:
+        B = identity(n=np.shape(L)[0], format='csr')
+    else:
+        raise ValueError('Not a valid normalization parameter...')
 
-            B = identity(n=np.shape(self.L)[0], format='csr')
+    # create the feature matrices
+    A = create_feature_mat(data, L, sparse=sparse)
+    B = create_feature_mat(data, B, sparse=sparse)
 
-        else:
-            B = self.D
+    #-------------------------------------
+    # solve the eigenvalue problem
+    #-------------------------------------
+    # intialize eigenvalue solver function
+    eig_model = EigSolver(n_components=n_components,
+                          eig_solver=eig_solver,
+                          sparse=sparse,
+                          tol=eigen_tol,
+                          norm_laplace=norm_laplace)
 
-        # create feature matrices
-        A = create_feature_mat(X, self.L)
-        B = create_feature_mat(X, B)
+    # return the eigenvalues and eigenvectors
+    return eig_model.find_eig(A=A, B=B)
 
-        # get the sparsity cases
-        if not self.sparse:
-            return A.toarray(), B.toarray()
-        else:
-            return A, B
+
+
+
+
 
 def swiss_roll_test():
 

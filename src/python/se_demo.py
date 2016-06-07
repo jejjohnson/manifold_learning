@@ -7,6 +7,7 @@ from sklearn import manifold, datasets
 from sklearn import manifold
 
 from manifold_learning.se import SchroedingerEigenmaps
+from data.get_hsi_data import get_data
 
 # swiss roll test to test out my function versus theirs
 def swiss_roll_test():
@@ -64,7 +65,14 @@ def swiss_roll_test():
 
     plt.show()
 
+def hsi_test():
+
+    # get indian pines data
+    img = get_data()
+
+
 
 if __name__ == "__main__":
 
-     swiss_roll_test()
+     #swiss_roll_test()
+     hsi_test()

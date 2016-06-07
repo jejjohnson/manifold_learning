@@ -16,7 +16,7 @@ from scipy import sparse
 from scipy.sparse import csr_matrix, csc_matrix, spdiags, identity
 
 from utils.nearestneighbor_solver import knn_scikit, knn_annoy
-from utils.graph_construction import create_laplacian, create_adjacency, \
+from utils.graph import create_laplacian, create_adjacency, \
                                create_feature_mat, maximum, \
                                compute_adjacency
 from utils.eigenvalue_decomposition import EigSolver
@@ -25,7 +25,7 @@ import pandas as pd
 
 
 
-class SchroedingerEigenmaps(BaseEstimator, TransformerMixin):
+class SchroedingerEigenmaps(BaseEstimator):
     """ Scikit-learn compatible class for Schroedinger Eigenmaps
 
     Parameters
@@ -57,242 +57,193 @@ class SchroedingerEigenmaps(BaseEstimator, TransformerMixin):
 
     """
     def __init__(self,
-                 # eigenvalue solver initials
-                 n_components=2,
-                 eig_solver = 'dense',
-                 norm_lap = False,
-                 tol = 1E-12,
-
-                 # eigenvalue tuner initials
-                 normalization = None,
-                 alpha = 17.78,
-                 beta = 1.0,
-                 mu = 1.0,
-
-                 # knn problem initials
-                 n_neighbors = 2,
+                 n_neighbors = 2,           # k-nn parameters
                  neighbors_algorithm = 'brute',
                  metric = 'euclidean',
-                 n_jobs = 1,
+                 n_jobs = 4,
                  weight = 'heat',
                  affinity = None,
                  gamma = 1.0,
                  trees = 10,
-
-                 # potential matrix initials
-                 potential = None,
+                 normalization = None,          # eigenvalue tuner parameters
+                 norm_laplace = None,
+                 lap_method = 'sklearn',
+                 mu = 1.0,
+                 potential = None,           # potential matrices parameters
+                 X_img = None,
                  sp_neighbors = 4,
                  sp_affinity = 'heat',
+                 alpha = 17.78,
                  eta = 1.0,
-
-
-                 # general problem parameters
+                 beta = 1.0,
+                 n_components=2,
+                 eig_solver = 'dense',
+                 eig_tol = 1E-12,
                  sparse = False,
                  random_state=0):
-
-        # eigenvalue solver initials
-        self.n_components = n_components
-        self.eig_solver = eig_solver
-        self.norm_lap = norm_lap
-        self.tol = tol
-
-        # eigenvalue tuner initials
-        self.normalization = normalization
-        self.alpha = alpha
-        self.beta = beta
-        self.mu = mu
-
-
-        # knn problem initials
-        self.n_jobs = n_jobs
-        self.affinity = affinity
-        self.weight = weight
-        self.gamma = gamma
-        self.eta = eta
-        self.random_state = random_state
         self.n_neighbors = n_neighbors
         self.neighbors_algorithm = neighbors_algorithm
-
-        # potential matrix initials
+        self.metric = metric
+        self.n_jobs = n_jobs
+        self.weight = weight
+        self.affinity = affinity
+        self.gamma = gamma
+        self.trees = trees
+        self.normalization = normalization  # eigenval tuner
+        self.norm_laplace = norm_laplace
+        self.lap_method = lap_method
+        self.mu = mu
         self.potential = potential
+        self.X_img = X_img
         self.sp_neighbors = sp_neighbors
         self.sp_affinity = sp_affinity
-        self.metric = metric
-        self.trees = trees
-
-        # non-input initial parameters
-        self.V_d = None
-        self.V_s = None
-
-        # general problem parameters
+        self.alpha = alpha
+        self.eta = eta
+        self.beta = beta
+        self.n_components = n_components
+        self.eig_solver = eig_solver
+        self.eig_tol = eig_tol
         self.sparse = sparse
         self.random_state = random_state
 
-
-
-    def fit(self, X, y=None, X_img=None):
-
-         if not X_img:
-             X_img = X
-
-         ''' TODO: contain the potential matrix choices within the
+    def fit(self, X, y=None):
+        ''' TODO: contain the potential matrix choices within the
            internal potential matrix function'''
-         # check the array and see if it satisfies the requirements
-         X = check_array(X)
-
-         # compute the weighted adjacency matrix for X
-
-         W = compute_adjacency(X,
+        # check the array and see if it satisfies the requirements
+        X = check_array(X)
+        # compute the weighted adjacency matrix for X
+        W = compute_adjacency(X,
                                n_neighbors=self.n_neighbors,
                                weight=self.weight,
                                affinity=self.affinity,
-                               neighbors_algorithm=self.neighbors_algorithm)
+                               metric=self.metric,
+                               neighbors_algorithm=self.neighbors_algorithm,
+                               gamma=self.gamma,
+                               trees=self.trees,
+                               n_jobs=self.n_jobs)
 
-         # compute potential matrix
-         self.V_s = self._potential(X, y=y, X_img=X_img)
-
-
-
-         # compute normalization potential matrix
-         self.V_d = self._normalization(X, y=y, X_img=None)
-
-         # compute the projection into the new space
-
-         _, self.embedding_ = self._spectral_embedding(X, W)
-         return self
+        if self.potential:
+            self._potential(X, y=y)
+        else:
+            self.ss_potential=None
+            self.pl_potential=None
+        # compute the projection into the new space
+        self.eigVals, self.embedding_ = graph_embedding(
+             adjacency=W, data=X,
+             norm_laplace=self.norm_laplace,
+             lap_method=self.lap_method,
+             normalization=self.normalization,
+             mu=self.mu,
+             ss_potential=self.ss_potential,
+             alpha=self.alpha,
+             pl_potential=self.pl_potential,
+             beta=self.beta,
+             n_components=self.n_components,
+             eig_solver=self.eig_solver,
+             eig_tol=self.eig_tol,
+             random_state=self.random_state)
+        return self
 
 
     # Compute the projection of X into the new space
-    def transform(self, X):
+    def fit_transform(self, X):
+        # check the array and see if it satisfies the requirements
+        X = check_array(X)
+        self.fit(X)
 
-          # check the array and see if it satisfies the requirements
-         X = check_array(X)
-
-         return self.embedding_
-
-    # Normalization parameter
-    def _normalization(self, X=None, y=None, X_img=None):
-
-        if self.normalization == 'dissimilarity':
-             return self._potential(X=X, y=None,
-                                    potential=potential)
-
-        elif self.normalization not in ['degree', 'identity', 'sema']:
-             return None
-
+        return self.embedding_
 
 
     # function that deciphers which potential matrix to use
-    def _potential(self, X, y=None, X_img=None):
+    def _potential(self, X, y=None):
 
+        # initialize potential matrices
+        self.ss_potential = None
+        self.pl_potential = None
+        # compute spatial-spectral potential matrix
+        if self.potential in ['SS', 'SpatialSpectral', 'ss']:
+            # get spatial coordinates for dataset (specifically images)
+            X_spatial = get_spatial_coordinates(self.X_img)
+            # find the k_nearest neighbors indices
+            _, V_ind = knn_scikit(X, n_neighbors=self.sp_neighbors,
+                               method='brute')
+            # save the spatial-spectral potential
+            self.ss_potential = ssse_potential(X, X_spatial,
+                                               V_ind, weight=self.sp_affinity)
+        # create the similarity potential matrix
+        elif self.potential in ['similarity', 'sim', 'plnaive']:
+            raise ValueError('Sorry. This method is unavailable at'\
+                              'the moment.')
+        # create the partial knowledge potential matrix
+        elif self.potential in ['pl', 'partiallabels']:
+            raise ValueError('Sorry. This method is unavailable at'\
+                              'the moment.')
+        else:
+            raise ValueError('Sorry. Unrecognized Potential matrix.')
 
+        return self
 
-         # The classifical laplacian matrix case
-         if not self.potential:
-             return None
+def graph_embedding(adjacency, data,
+                    norm_laplace = None,lap_method = 'sklearn',
+                    norm_method = 'degree', normalization= None, mu=1.0,
+                    ss_potential=None, alpha=17.78,
+                    pl_potential=None, beta=1.0,
+                    n_components=2,eig_solver=None,eig_tol=1E-12,
+                    random_state=None):
+    """
+    Returns
+    -------
+    eigenvalues
+    eigenvectors
+    TODO - time elapse
+    """
+    # create laplacian and diagonal degree matrix
+    L, D = create_laplacian(adjacency, norm_lap=norm_laplace,
+                            method=lap_method)
 
-         # compute spatial-spectral potential matrix
-         elif self.potential == 'ssse':
+    #-------------------------------
+    # Tune the Eigenvalue Problem
+    #-------------------------------
+    # choose which normalization parameter to use
+    if norm_method in ['degree', 'Degree', None]:   # standard laplacian
+        B = D
 
-             # get spatial coordinates for dataset (specifically images)
-             X_spatial = get_spatial_coordinates(X_img)
+    elif normalization in ['identity']:     # analogous to ratio cute
+        B = identity(n=np.shape(L)[0], format='csr')
 
-             # find the k_nearest neighbors indices
-             _, V_ind = knn_scikit(X, n_neighbors=self.sp_neighbors,
-                                   method='brute')
+    else:
+        raise ValueError('Not a valid normalization parameter...')
 
-             # return the spatial-spectral potential matrix
-             return ssse_potential(X, X_spatial, V_ind,
-                                   weight=self.sp_affinity)
+    # choose the regularizer
+    if not ss_potential == None:            # spatial-spectral potential
+        if not alpha:
+            alpha = 17.78
+        alpha = get_alpha(alpha, L, ss_potential)
+        A = L + alpha * ss_potential
 
-         # create the similarity potential matrix
-         elif self.potential == 'similarity':
-             raise ValueError('Sorry. This method is unavailable at'
-             'the moment.')
+    elif not pl_potential == None:          # partial-labels potential
+        beta = get_alpha(beta, L, pl_potential)
+        A = L + beta * pl_potential
 
-         # create the dissimilarity potential matrix
-         elif self.potential == 'dissimilarity':
-             raise ValueError('Sorry. This method is unavailable at'
-             'the momement.')
+    else:                       # no potential (standard Laplacian)
+        A = L
 
-         # create the partial knowledge potential matrix
-         elif self.potential == 'pkssse':
-             raise ValueError('Sorry. This method is unavailable at'
-             'the moment.')
+    #-------------------------------
+    # Solve the Eigenvalue Problem
+    #-------------------------------
 
-         else:
-             raise ValueError('Sorry. Unrecognized Potential matrix.')
+    # initialize the EigSolver class
+    eig_model = EigSolver(n_components=n_components,
+                          eig_solver=eig_solver,
+                          sparse=sparse,
+                          tol=eig_tol,
+                          norm_laplace=norm_laplace)
 
-    # eigenvalue problem tuner
-    def _embedding_tuner(self):
-
-
-         # Choose which normalization parameter to use
-         if self.normalization == 'identity':
-
-             B = identity(n=np.shape(self.L)[0], format='csr')
-
-         elif self.normalization == 'sema':
-
-             beta = get_alpha(alpha=self.beta, D=self.D, V=self.V_d)
-             B = self.D + beta * self.V_d
-
-         elif self.normalization == 'dissimilarity':
-
-             B = self.V_d
-
-         else:
-             B = self.D
-
-         # choose which Laplacian/Schroedinger Operator to use
-
-         if self.potential in ['ssse', 'similarity', 'pkssse']:
-
-             alpha = get_alpha(alpha=self.alpha, L=self.L, V=self.V_s)
-             A = self.L + self.alpha * self.V_s
-
-         else:
-             A = self.L
-
-         # sparse case
-         if not self.sparse:
-             try:
-                 A = A.toarray()
-             except:
-                 pass
-             try:
-                 B = B.toarray()
-             except:
-                 pass
-
-         # return the values of A and B
-
-         return A, B
-
-
-    # compute the spectral embedding
-    def _spectral_embedding(self, X, W):
-
-        # create the laplacian and diagonal degree matrix
-        self.L, self.D = create_laplacian(W,
-                                          norm_lap=self.norm_lap,
-                                          method='personal')
-
-        # tune the generalized eigenvalue problem with parameters
-        A, B = self._embedding_tuner()
-
-        # Fit the parameters to an eigenvalue solver method
-        eig_model = EigSolver(n_components=self.n_components,
-                              eig_solver=self.eig_solver,
-                              sparse=self.sparse,
-                              tol=self.tol,
-                              norm_laplace=self.norm_lap)
-
-        # return the eigenvalues and eigenvectors
-        return eig_model.find_eig(A=A,B=B)
-
-
-
+    # return the eigenvalues and eigenvectors
+    return eig_model.find_eig(A=A, B=B)
+#-------------------------------------------------------
+# Schroedinger Eigenmaps Utilities
+#-------------------------------------------------------
 # Module for extracting the spatial features of the data
 def get_spatial_coordinates(data):
     """
@@ -455,7 +406,6 @@ def ssse_potential(data,
 
     # Return the sparse Potential Matrix V
     return V_diags+V_sparse
-
 
 # create similarity and dissimilarity potential matrices
 def sim_potential(X, potential='sim',
