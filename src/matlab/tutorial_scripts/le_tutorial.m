@@ -73,7 +73,7 @@ dims.nodes = size(imgVec,1);
 % with 2 features: the x-direction and y-direction
 pData = [x(:) y(:)];
 
-
+break
 %#########################################
 %% Construct Adjacency Matrix
 %#########################################
@@ -81,6 +81,8 @@ pData = [x(:) y(:)];
 % K NEAREST NEIGHBORS
 knnVal = 20;
 distType = 'euclidean';     % distance measure between neighbors
+
+
 try 
     
     % try loading in previous data in subdirectory
@@ -174,35 +176,55 @@ D = spdiags(sum(W, 2), 0, dims.nodes, dims.nodes);
 % SPECTRAL LAPLACIAN MATRIX (D-W)
 L = D - W;
 
-
-
 %############################################
-%% Eigenvalue Decomposition
+%% LaplacianEigenmaps function test
 %############################################
+n_components = 150;
+options.n_components = n_components;
+
+tic;
+[embedding, lambda] = LaplacianEigenmaps(W, options);
+time = toc;
 
 % number of components we want to keep
-n_components = 150;
+
 
 tic;
 
-% perform the eigenvalue decomposition (we want the smallest ones)
-[embedding, lambda] = eigs(L,D,round(1.5*(n_components+1)),'sm');
-time = toc;
-
-% disregard the smallest eigenvalue because it should be zero
-embedding = embedding(:,2:n_components+1);
-lambda = diag(lambda); lambda = lambda(2:n_components+1);
-
 fprintf('Eigenvalue Decomposition: %.3f.\n', time)
+save('../saved_data/le_eigvals.mat', 'embedding', 'lambda')
+%############################################
+%% Eigenvalue Decomposition
+%############################################
+try 
+    
+    % try loading in previous data in subdirectory
+    load('saved_data/le_eigvals');
+    disp('Found previous computation in saved files...');
+catch
+    n_components = 150;
+    options.n_components = n_components;
+    
+    tic;
+    [embedding, lambda] = LaplacianEigenmaps(W, options);
+    time = toc;
+    
+    % number of components we want to keep
 
 
+    tic;
 
+    fprintf('Eigenvalue Decomposition: %.3f.\n', time)
+    save('saved_data/le_eigvals.mat', 'embedding', 'lambda')
+end
+
+break
 %#############################################################
 %% Experiment III - Tuia et al. LDA w/ Assessment
 %#############################################################
 
-
-test_dims = (1:10:150);
+n_components = size(embedding,2);
+test_dims = (1:10:n_components);
 % testing and training
 
 lda_class = [];
@@ -212,7 +234,7 @@ h = waitbar(0, 'Initializing waitbar...');
 
 for dim = test_dims
     
-    waitbar(dim/n_components)
+    waitbar(dim/n_components,h, 'Performing LDA')
     % # of dimensions
     XS = embedding(:,1:dim);
     
