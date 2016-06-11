@@ -14,6 +14,7 @@ from scipy.sparse.linalg import lobpcg, eigs, eigsh
 from scipy.linalg import eigh
 from scipy import linalg
 from sklearn.utils import check_array
+from sklearn.utils.validation import check_random_state
 
 
 class EigSolver(object):
@@ -36,20 +37,24 @@ class EigSolver(object):
                  eig_solver = 'dense',
                  sparse = False,
                  tol = 1.E-12,
-                 norm_laplace=False):
+                 norm_laplace=False,
+                 random_state=None):
          self.n_components = n_components
          self.eig_solver = eig_solver
          self.sparse = sparse
          self.tol = tol
          self.norm_laplace = norm_laplace
+         self.random_state = random_state
 
 
     def find_eig(self, A, B=None):
 
          if self.sparse and self.eig_solver not in ['arpack', 'multi']:
              self.eig_solver = 'arpack'
+             print('Matrices are sparse. Using ARPACK instead.')
          elif not self.sparse and self.eig_solver not in ['robust', 'dense']:
              self.eig_solver = 'dense'
+             print('Matrices are not sparse. Using dense methods instead.')
 
          if self.eig_solver == 'robust' and not self.sparse:
 
@@ -73,7 +78,8 @@ class EigSolver(object):
             eigVals, eigVecs = eig_multi(A=A,
                                          B=B,
                                           n_components=self.n_components,
-                                          tol=self.tol)
+                                          tol=self.tol,
+                                          random_state=self.random_state)
 
          elif self.eig_solver == 'rsvd':
              _, eigVals, eigVecs = r_svd(M=A,
@@ -110,10 +116,6 @@ def eig_scipy(A, B=None, n_components=2+1, method='arpack'):
     else:
         n_components = n_components
 
-    # check to make sure the number of eigs is less than dim of A
-    print('The number of components {n}'.format(n=n_components))
-
-
     # Solve using the eigenvale method
     eigenvalues, eigenvectors = eigsh(A=A,
                                           k=n_components,
@@ -125,12 +127,13 @@ def eig_scipy(A, B=None, n_components=2+1, method='arpack'):
 #--------------------------------------
 # Pyamg - Multigrid
 #--------------------------------------
-def eig_multi(A, B=None, n_components=2+1, tol=1E-12):
+def eig_multi(A, B=None, n_components=2, tol=1E-12, random_state=None):
     """Solves the generalized Eigenvalue problem:
     A x = lambda B x using the multigrid method.
     Works well with very large matrices but there are some
     instabilities sometimes.
     """
+    random_state = check_random_state(random_state)
     # convert matrix A and B to float
     A = A.astype(np.float64);
 
@@ -138,22 +141,29 @@ def eig_multi(A, B=None, n_components=2+1, tol=1E-12):
         B = B.astype(np.float64)
 
     # import the solver
-    ml = smoothed_aggregation_solver(A)
+    ml = smoothed_aggregation_solver(check_array(A, accept_sparse = ['csr']))
 
     # preconditioner
     M = ml.aspreconditioner()
 
+    n_nodes = A.shape[0]
+    n_find = min(n_nodes, 5 + 2*n_components)
     # initial guess for X
     np.random.RandomState(seed=1234)
-    X = np.random.rand(A.shape[0], n_components+1)
+    X = random_state.rand(n_nodes, n_find)
 
     # solve using the lobpcg algorithm
-    eigenvalues, eigenvectors = lobpcg(A, X, M=M, B=B,
+    eigVals, eigVecs = lobpcg(A, X, M=M, B=B,
                                        tol=tol,
                                        largest='False')
-    eigenvalues = eigenvalues[::-1]
-    eigenvectors = eigenvectors[:,::-1]
-    return eigenvalues[:n_components+1], eigenvectors[:,:n_components+1]
+
+    sort_order = np.argsort(eigVals)
+    eigVals = eigVals[sort_order]
+    eigVecs = eigVecs[:, sort_order]
+
+    eigVals = eigVals[:n_components]
+    eigVecs = eigVecs[:, :n_components]
+    return eigVals, eigVecs
 
 
 

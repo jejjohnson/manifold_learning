@@ -23,7 +23,26 @@ from utils.eigenvalue_decomposition import EigSolver
 
 
 class ManifoldAlignment(object):
-    """ This is my manifold alignment object
+    """ Manifold Alignment for aligning two heterogenous datasets
+
+    Parameters (TODO)
+    ----------
+
+    Returns (TODO)
+    -------
+
+    References (TODO)
+    ----------
+
+    * Dr. Chang Wang and his collaborators
+        https://sites.google.com/site/changwangnk/home/ma-html
+
+    * Dr. Devis Tuia and his collaborators
+        http://isp.uv.es/code/ssma.htm
+
+    * Dr. Czaja and his collaborators
+        http://arxiv.org/pdf/1102.4086.pdf
+        http://goo.gl/Gd5HxU
     """
     def __init__(self,
                  # eigenvalue solver initials
