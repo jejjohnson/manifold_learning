@@ -1,39 +1,43 @@
 function [embedding, lambda] = SchroedingerEigenmaps(data, options)
-%{
-
-SchroedingerEigenmaps
-    [embedding, lambda] = SchroedingerEigenmaps(data, options)
-
-        
-Parameters
-----------
-data - (N x d) matrix of samples x dimensions 
-
-options - a matlab structure data structure with fields in options to be
-          set. 
-
-    - knn   -   a matlab struct of knn options. See Adjacncy.m for more
-                options.
-    - embedding - a matlab struct of graph embedding options. See 
-                  GraphEmbedding.m for more options
-
-
-Returns
--------
-embedding - (N x d) matrix of sample projection x number of components
-            the projected embedding of the eigenvalue decomposition
-
-lambda - (d) column vector as the sorted eigenvalues
-
-References
-----------
-
-Deng Cai's subspace
-
-
-Written by Juan Emmanuel Johnson
-
-%}
+% SchroedingerEigenmaps
+%     [embedding, lambda] = SchroedingerEigenmaps(data, options)
+% 
+%         
+% Parameters
+% ----------
+% data - (N x d) matrix of samples x dimensions 
+% 
+% options - a matlab structure data structure with fields in options to be
+%           set. 
+% 
+%     - knn   -   a matlab struct of knn options. See Adjacncy.m for more
+%                 options.
+%     - embedding - a matlab struct of graph embedding options. See 
+%                   GraphEmbedding.m for more options
+% 
+% 
+% Returns
+% -------
+% embedding - (N x d) matrix of sample projection x number of components
+%             the projected embedding of the eigenvalue decomposition
+% 
+% lambda - (d) column vector as the sorted eigenvalues
+% 
+% References
+% ----------
+% 
+% Deng Cai's subspace
+% 
+% TODO
+% ----
+% * Do more checks for faulty inputs to prevent user frustration
+%
+%
+% Information
+% -----------
+% Author: Juan Emmanuel Johnson
+% Email: jej2744@rit.edu
+% Date: 11 June 2016
 
 %==========================================================================
 % Parse Inputs
@@ -54,10 +58,6 @@ switch lower(options.type)
         [x,y] = meshgrid(1:size(options.image,2),1:size(options.image,1));
         pData = [x(:) y(:)];
         
-        disp('size of spectral data')
-        size(data)
-        disp('size of spatial data')
-        size(pData)
         % construct the spectral adjacency matrix
         [W, ~] = Adjacency(data, options.knn);
         
@@ -72,7 +72,7 @@ switch lower(options.type)
         options.embedding.weightdata = data;
         
         % use the Knn values from the spatial data
-        options.embedding.spatialidx = idxP;
+        options.embedding.idx = idxP;
         
         % declare spatial-spectral graph embedding
         options.embedding.type = 'ssse';
@@ -93,7 +93,7 @@ switch lower(options.type)
         options.embedding.weightdata = pData;
         
         % use the Knn values from the spatial data
-        options.embedding.spatialidx = idxF;
+        options.embedding.idx = idxF;
         
         % declare spatial-spectral graph embedding
         options.embedding.type = 'ssse';

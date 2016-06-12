@@ -59,21 +59,6 @@ imgVec = reshape(img, [dims.rows*dims.cols dims.spectra]);
 gt_Vec = reshape(gt, [dims.rows*dims.cols 1]);
 dims.nodes = size(imgVec,1);
 
-%##########################################
-%% Spatial Positions of the data
-%##########################################
-
-% create a meshgrid function that will be the size of the spatial
-% domain of the image. the meshgrid function basically captures the
-% coordinates of the image
-[x, y] = meshgrid(1:dims.cols, 1:dims.rows);
-
-% now that we have the coordinates, create a matrix that has coordinates
-% laid out side by side like an imgVec. think of it like a long vector 
-% with 2 features: the x-direction and y-direction
-pData = [x(:) y(:)];
-
-break
 %#########################################
 %% Construct Adjacency Matrix
 %#########################################
@@ -83,42 +68,18 @@ knnVal = 20;
 distType = 'euclidean';     % distance measure between neighbors
 
 
-try 
-    
-    % try loading in previous data in subdirectory
-    load('saved_data/knn_data');
-    disp('Found previous computation in saved files');
-catch
-    
-    % if not, will manually do implementation and save it for later
-    warning('No previous implementations...calculating knn');
-    
-    % first, find the 20-nearest neighbors
+% initialize the KD Tree Model
+KDModel = KDTreeSearcher(imgVec, 'Distance', distType);
 
-    % JIT Implementation
-    tic;
-    [knn.idxJIT, knn.distJIT] = knnJIT(imgVec, imgVec, knnVal);
-    knn.timeJIT = toc;
-    
-    % print time elapsed
-    fprintf('Knn Search - JIT: %.3f.s\n', knn.timeJIT)
+% query the vector for k nearest neighbors
+[knn.idx, knn.dist]=knnsearch(KDModel, imgVec,'k',...
+    knnVal+1);
+knn.timekd = toc;
 
-    % MATLAB Implementation
-    tic;
-    [knn.idx, knn.dist]=knnsearch(imgVec, imgVec,'k',...
-        knnVal+1,'Distance',distType);
-    knn.time = toc;
-    
-    % print time elapsed
-    fprintf('Knn Search - JIT: %.3f.s\n', knn.time)
-    
-    knn.idx = knn.idx(:, 2:end);
-    knn.dist = knn.dist(:, 2:end);
-    
-    % save knn implementations for later
-    save('saved_data/knn_data.mat', 'knn')
-end
-
+knn.idx = knn.idx(:, 2:end);
+knn.dist = knn.dist(:, 2:end);   
+% print time elapsed
+fprintf('KD Tree Search - MATLAB: %.3f.s\n', knn.timekd)
 % DISTANCE KERNELS
 
 % element-wise operation 
@@ -177,8 +138,9 @@ D = spdiags(sum(W, 2), 0, dims.nodes, dims.nodes);
 L = D - W;
 
 %############################################
-%% LaplacianEigenmaps function test
+%% Eigenvalue Decomposition
 %############################################
+
 n_components = 150;
 options.n_components = n_components;
 
@@ -186,41 +148,18 @@ tic;
 [embedding, lambda] = LaplacianEigenmaps(W, options);
 time = toc;
 
-% number of components we want to keep
+number of components we want to keep
 
 
 tic;
 
 fprintf('Eigenvalue Decomposition: %.3f.\n', time)
-save('../saved_data/le_eigvals.mat', 'embedding', 'lambda')
-%############################################
-%% Eigenvalue Decomposition
-%############################################
-try 
-    
-    % try loading in previous data in subdirectory
-    load('saved_data/le_eigvals');
-    disp('Found previous computation in saved files...');
-catch
-    n_components = 150;
-    options.n_components = n_components;
-    
-    tic;
-    [embedding, lambda] = LaplacianEigenmaps(W, options);
-    time = toc;
-    
-    % number of components we want to keep
+save('saved_data/le_eigvals.mat', 'embedding', 'lambda')
 
 
-    tic;
 
-    fprintf('Eigenvalue Decomposition: %.3f.\n', time)
-    save('saved_data/le_eigvals.mat', 'embedding', 'lambda')
-end
-
-break
 %#############################################################
-%% Experiment III - Tuia et al. LDA w/ Assessment
+%% Experiment I - Tuia et al. LDA & SVM w/ Assessment
 %#############################################################
 
 n_components = size(embedding,2);
@@ -238,7 +177,7 @@ for dim = test_dims
     % # of dimensions
     XS = embedding(:,1:dim);
     
-    [Xtr, Ytr, Xts, Yts , ~, ~] = ppc(XS, gt_Vec, .25);
+    [Xtr, Ytr, Xts, Yts , ~, ~] = ppc(XS, gt_Vec, .10);
     
     % Classifiaction - LDA
     [Ypred, err] = classify(Xts, Xtr, Ytr);
@@ -246,44 +185,48 @@ for dim = test_dims
     % Assessment
     Results = assessment(Yts, Ypred, 'class');
     
-    lda_class = [lda_class; Results.OA];
+    lda_class = [lda_class; (100-Results.OA)/100];
+%     svm_class = [svm_class; Results.Kappa];
     
-%     % Classification - SVM
-%     Ypred = svmClassify(Xtr, Ytr, Xts);
-%     
-%      % Assessment - SVM
-%     Results = assessment(Yts, Ypred, 'class');
-%     
-%     svm_class = [svm_class; (Results.Kappa)];
+    waitbar(dim/n_components,h, 'Performing SVM')
+    % Classification - SVM
+    Ypred = svmClassify(Xtr, Ytr, Xts);
+    
+     % Assessment - SVM
+    Results = assessment(Yts, Ypred, 'class');
+    
+    svm_class = [svm_class; (100-Results.OA)/100];
     
 end
 
 close(h)
 
+%% Plot
+
 figure('Units', 'pixels', ...
     'Position', [100 100 500 375]);
 hold on;
 
 % plot lines
-hLECV = line(test_dims, lda_class);
-hLE = line(test_dims, svm_class);
+hLDA = line(test_dims, lda_class);
+hSVM = line(test_dims, svm_class);
 
 % set some first round of line parameters
-set(hLECV, ...
+set(hLDA, ...
     'Color',        'r', ...
     'LineWidth',    2);
-set(hLE, ...
+set(hSVM, ...
     'Color',        'b', ...
     'LineWidth',    2);
 
-hTitle = title('LE + LDA - Indian Pines');
+hTitle = title('SSSE + LDA, SVM - Indian Pines');
 hXLabel = xlabel('d-Dimensions');
 hYLabel = ylabel('Correct Rate');
 
 hLegend = legend( ...
-    [hLECV, hLE], ...
-    'Kappa Coefficient',...
-    'Overall Accuracy',...
+    [hLDA, hSVM], ...
+    'LDA - OA',...
+    'SVM - OA',...
     'location', 'NorthWest');
 
 % pretty font and axis properties
@@ -306,172 +249,171 @@ set(gca,...
     'XColor',       [.3,.3,.3],...
     'YColor',       [.3, .3, .3],...
     'YTick'     ,   0:0.1:1,...
-    'XTick'     ,   0:10:100,...
+    'XTick'     ,   0:10:n_components,...
     'LineWidth' ,   1);
 
-
-
-break
-%#############################################################
-%% Experiment I - Dimension versus Class Accuracy
-%#############################################################
-
-% eigenvalue decomposition parameters
-test_dims = (1:5:50);
-
-% part 1 - do LE + LDA w/ Cross-Validation
-error_rates.le_cv = zeros(size(test_dims));
-
-% part 2 - do LE + LDA 
-error_rates.le = zeros(size(test_dims));
-
-% part 3 - do LDA w/ Cross-Validation
-error_rates.lda_cv = zeros(size(test_dims));
-
-% part 4 - do LDA
-error_rates.lda = zeros(size(test_dims));
-
-
-
-%--------------------------------------------
-% Training vs. Testing - No CrossValidation
-%-------------------------------------------- 
-
-trainRatio = .1;        % Training Idx percentage
-testRatio = .9;         % Testing Idx percentage
-valRatio = 0.0;         % Validation Idx percentage
-
-% get the training and testing indices
-[trainidx, ~, testidx] = divideint(size(gt_Vec,1), .25,.0,.75);
-
-% prefer a (samples x 1) vector 
-trainidx = trainidx'; testidx = testidx';
-
-%-------------------------------------------- ---
-% Training vs. Testing - 10-Fold CrossValidation
-%-------------------------------------------- ---
-
-% number of folds
-k_folds = 10;
-
-% cross validation indices
-crossvalidx = crossvalind('kfold', gt_Vec, k_folds);
-
-% classification performance object (testing w/ ground truth vec)
-cp.le_cv = classperf(gt_Vec);       % LE w/ CV performance measurer
-cp.lda_cv = classperf(gt_Vec);      % LE performance measurer
-
-cp.lda = classperf(gt_Vec);         % LDA w/ cv performance measurer
-cp.le = classperf(gt_Vec);          % LDA w/o cv performance measurer
-
-%-------------------------------------------- ---
-%% Experiment 1a,b - Cross-Validation
-%-------------------------------------------- ---
-
-% keep track of dimensions
-dim_count = 1;
-
-for dim = test_dims
-    
-    % # of dimensions
-    XS = embedding(:,1:dim);
-    
-    % Classifiaction - Cross-Validation
-    
-    % initialize the performance measurer
-    cp.le_cv = classperf(gt_Vec);       % LE w/ CV performance measurer
-    
-    for i = 1:10
-        test = (crossvalidx == i); train = ~ test;
-        class = classify(XS(test,:), XS(train,:), ...
-            gt_Vec(train,:));
-        classperf(cp.le_cv, class, test);
-    end
-    
-    % store error rates
-    error_rates.le_cv(dim_count) = cp.le_cv.CorrectRate;
-    
-    % Classification - No Cross-Validation
-    
-    % initialize the performance measurer
-    cp.le = classperf(gt_Vec);       % LE w/ CV performance measurer
-    
-    class = classify(XS(testidx,:), XS(trainidx,:),...
-        gt_Vec(trainidx,:));
-    classperf(cp.le, class, testidx);
-    
-    % store error rates
-    error_rates.le(dim_count) = cp.le.CorrectRate;
-    
-    
-    % count next iteration
-    dim_count = dim_count + 1;
-end
-
-
-
-%################################################
-%% Experiment I - Plot Results
-%################################################
-    
-
-figure('Units', 'pixels', ...
-    'Position', [100 100 500 375]);
-hold on;
-
-% plot lines
-hLECV = line(test_dims, error_rates.le_cv);
-hLE = line(test_dims, error_rates.le);
-
-% set some first round of line parameters
-set(hLECV, ...
-    'Color',        'r', ...
-    'LineWidth',    2);
-set(hLE, ...
-    'Color',        'b', ...
-    'LineWidth',    2);
-
-hTitle = title('LE + LDA - Indian Pines');
-hXLabel = xlabel('d-Dimensions');
-hYLabel = ylabel('Correct Rate');
-
-hLegend = legend( ...
-    [hLECV, hLE], ...
-    'Cross-Validation',...
-    'No Cross-Validation',...
-    'location', 'NorthWest');
-
-% pretty font and axis properties
-set(gca, 'FontName', 'Helvetica');
-set([hTitle, hXLabel, hYLabel],...
-    'FontName', 'AvantGarde');
-set([hXLabel, hYLabel],...
-    'FontSize',10);
-set(hTitle,...
-    'FontSize'  ,   12,...
-    'FontWeight',   'bold');
-
-set(gca,...
-    'Box',      'off',...
-    'TickDir',  'out',...
-    'TickLength',   [.02, .02],...
-    'XMinorTick',   'on',...
-    'YMinorTick',   'on',...
-    'YGrid',        'on',...
-    'XColor',       [.3,.3,.3],...
-    'YColor',       [.3, .3, .3],...
-    'YTick'     ,   0:0.1:1,...
-    'XTick'     ,   0:10:100,...
-    'LineWidth' ,   1);
-
-
-
-%#############################################################
-%% Experiment II - Cahill SVM
-%#############################################################
-
-
-
-%%
-
-C = cahill_svm(embedding, gt, dims.rows, dims.cols);
+%% Save the figure
+print('saved_figures/ssse_test', '-depsc2');
+% %#############################################################
+% %% Experiment I - Dimension versus Class Accuracy
+% %#############################################################
+% 
+% % eigenvalue decomposition parameters
+% test_dims = (1:5:50);
+% 
+% % part 1 - do LE + LDA w/ Cross-Validation
+% error_rates.le_cv = zeros(size(test_dims));
+% 
+% % part 2 - do LE + LDA 
+% error_rates.le = zeros(size(test_dims));
+% 
+% % part 3 - do LDA w/ Cross-Validation
+% error_rates.lda_cv = zeros(size(test_dims));
+% 
+% % part 4 - do LDA
+% error_rates.lda = zeros(size(test_dims));
+% 
+% 
+% 
+% %--------------------------------------------
+% % Training vs. Testing - No CrossValidation
+% %-------------------------------------------- 
+% 
+% trainRatio = .1;        % Training Idx percentage
+% testRatio = .9;         % Testing Idx percentage
+% valRatio = 0.0;         % Validation Idx percentage
+% 
+% % get the training and testing indices
+% [trainidx, ~, testidx] = divideint(size(gt_Vec,1), .25,.0,.75);
+% 
+% % prefer a (samples x 1) vector 
+% trainidx = trainidx'; testidx = testidx';
+% 
+% %-------------------------------------------- ---
+% % Training vs. Testing - 10-Fold CrossValidation
+% %-------------------------------------------- ---
+% 
+% % number of folds
+% k_folds = 10;
+% 
+% % cross validation indices
+% crossvalidx = crossvalind('kfold', gt_Vec, k_folds);
+% 
+% % classification performance object (testing w/ ground truth vec)
+% cp.le_cv = classperf(gt_Vec);       % LE w/ CV performance measurer
+% cp.lda_cv = classperf(gt_Vec);      % LE performance measurer
+% 
+% cp.lda = classperf(gt_Vec);         % LDA w/ cv performance measurer
+% cp.le = classperf(gt_Vec);          % LDA w/o cv performance measurer
+% 
+% %-------------------------------------------- ---
+% %% Experiment 1a,b - Cross-Validation
+% %-------------------------------------------- ---
+% 
+% % keep track of dimensions
+% dim_count = 1;
+% 
+% for dim = test_dims
+%     
+%     % # of dimensions
+%     XS = embedding(:,1:dim);
+%     
+%     % Classifiaction - Cross-Validation
+%     
+%     % initialize the performance measurer
+%     cp.le_cv = classperf(gt_Vec);       % LE w/ CV performance measurer
+%     
+%     for i = 1:10
+%         test = (crossvalidx == i); train = ~ test;
+%         class = classify(XS(test,:), XS(train,:), ...
+%             gt_Vec(train,:));
+%         classperf(cp.le_cv, class, test);
+%     end
+%     
+%     % store error rates
+%     error_rates.le_cv(dim_count) = cp.le_cv.CorrectRate;
+%     
+%     % Classification - No Cross-Validation
+%     
+%     % initialize the performance measurer
+%     cp.le = classperf(gt_Vec);       % LE w/ CV performance measurer
+%     
+%     class = classify(XS(testidx,:), XS(trainidx,:),...
+%         gt_Vec(trainidx,:));
+%     classperf(cp.le, class, testidx);
+%     
+%     % store error rates
+%     error_rates.le(dim_count) = cp.le.CorrectRate;
+%     
+%     
+%     % count next iteration
+%     dim_count = dim_count + 1;
+% end
+% 
+% 
+% 
+% %################################################
+% %% Experiment I - Plot Results
+% %################################################
+%     
+% 
+% figure('Units', 'pixels', ...
+%     'Position', [100 100 500 375]);
+% hold on;
+% 
+% % plot lines
+% hLECV = line(test_dims, error_rates.le_cv);
+% hLE = line(test_dims, error_rates.le);
+% 
+% % set some first round of line parameters
+% set(hLECV, ...
+%     'Color',        'r', ...
+%     'LineWidth',    2);
+% set(hLE, ...
+%     'Color',        'b', ...
+%     'LineWidth',    2);
+% 
+% hTitle = title('LE + LDA - Indian Pines');
+% hXLabel = xlabel('d-Dimensions');
+% hYLabel = ylabel('Correct Rate');
+% 
+% hLegend = legend( ...
+%     [hLECV, hLE], ...
+%     'Cross-Validation',...
+%     'No Cross-Validation',...
+%     'location', 'NorthWest');
+% 
+% % pretty font and axis properties
+% set(gca, 'FontName', 'Helvetica');
+% set([hTitle, hXLabel, hYLabel],...
+%     'FontName', 'AvantGarde');
+% set([hXLabel, hYLabel],...
+%     'FontSize',10);
+% set(hTitle,...
+%     'FontSize'  ,   12,...
+%     'FontWeight',   'bold');
+% 
+% set(gca,...
+%     'Box',      'off',...
+%     'TickDir',  'out',...
+%     'TickLength',   [.02, .02],...
+%     'XMinorTick',   'on',...
+%     'YMinorTick',   'on',...
+%     'YGrid',        'on',...
+%     'XColor',       [.3,.3,.3],...
+%     'YColor',       [.3, .3, .3],...
+%     'YTick'     ,   0:0.1:1,...
+%     'XTick'     ,   0:10:100,...
+%     'LineWidth' ,   1);
+% 
+% 
+% 
+% %#############################################################
+% %% Experiment II - Cahill SVM
+% %#############################################################
+% 
+% 
+% 
+% %%
+% 
+% C = cahill_svm(embedding, gt, dims.rows, dims.cols);

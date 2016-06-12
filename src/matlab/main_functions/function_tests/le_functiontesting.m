@@ -13,6 +13,7 @@ clear all; close all; clc;
 
 load('saved_data/img_data')
 
+
 %############################################
 %% LaplacianEigenmaps function test
 %############################################
@@ -26,7 +27,7 @@ le_options.knn = options;
 clear options
 
 % Eigenvalue Decompisition options (GraphEmbedding.m)
-options.n_components = 20;
+options.n_components = 150;
 options.constraint = 'degree';
 le_options.embedding = options;
 clear options
@@ -42,60 +43,106 @@ time = toc;
 tic;
 
 fprintf('Laplacian Eigenmaps: %.3f.\n', time)
-save('saved_data/le_eigvals.mat', 'embedding', 'lambda')
+% save('saved_data/le_eigvals.mat', 'embedding', 'lambda')
+
+% %#############################################################
+% %% Experiment I - SVM w/ Assessment
+% %#############################################################
+% 
+% %--------------------------------------------------------------------------
+% % Training Versus Testing
+% %--------------------------------------------------------------------------
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% %--------------------------------------------------------------------------
+% % SVM Classification
+% %--------------------------------------------------------------------------
+% 
+%     % classifcaiton SVM
+%     clear options
+%     options.imgVec = embedding;
+%     [y_pred, imgClass] = svmClassify(X_train, y_train, X_test, options);
+%     
+% 
+% %--------------------------------------------------------------------------
+% % Binary Classification Results
+% %--------------------------------------------------------------------------
+% 
+% [~, stats] = class_metrics(y_test, y_pred);
+% %%
+% 
+% % imgClass = reshape(imgClass, [size(img,1), size(img,2)]);
+% % 
+% % figure; imshow(imgClass)
+% 
+% 
+% 
+
 
 %#############################################################
-%% Experiment I - Tuia et al. LDA & SVM w/ Assessment
+%% Experiment II - SVM w/ Assessment versus dimension
 %#############################################################
 
 n_components = size(embedding,2);
-test_dims = (1:2:n_components);
-% testing and training
+test_dims = (1:10:n_components);
 
-lda_class = [];
-svm_class = [];
+% choose training and testing amount
+options.trainPrct = 0.01;
+rng('default');     % reproducibility
+
+lda_OA = [];
+svm_OA = [];
 
 h = waitbar(0, 'Initializing waitbar...');
 
 for dim = test_dims
     
-    waitbar(dim/n_components,h, 'Performing LDA')
+    waitbar(dim/n_components,h, 'Performing SVM classifiaction')
     % # of dimensions
     XS = embedding(:,1:dim);
     
-    [Xtr, Ytr, Xts, Yts , ~, ~] = ppc(XS, gt_Vec, .10);
+    % training and testing samples
+    [X_train, y_train, X_test, y_test] = train_test_split(...
+    embedding, gt_Vec, options);
     
-    % Classifiaction - LDA
-    [Ypred, err] = classify(Xts, Xtr, Ytr);
+    % classifcaiton SVM
+    [y_pred] = svmClassify(X_train, y_train, X_test);
     
-    % Assessment
-    Results = assessment(Yts, Ypred, 'class');
+    [~, stats] = class_metrics(y_test, y_pred);
     
-    lda_class = [lda_class; (100-Results.OA)/100];
-%     svm_class = [svm_class; Results.Kappa];
+    svm_OA = [svm_OA; stats.OA];
     
-    waitbar(dim/n_components,h, 'Performing SVM')
-    % Classification - SVM
-    Ypred = svmClassify(Xtr, Ytr, Xts);
     
-     % Assessment - SVM
-    Results = assessment(Yts, Ypred, 'class');
+    waitbar(dim/n_components,h, 'Performing LDA classifiaction')
+    % classifiaction LDA
+    lda_obj = fitcdiscr(X_train, y_train);
+    y_pred = predict(lda_obj, X_test);
     
-    svm_class = [svm_class; (100-Results.OA)/100];
+    [~, stats] = class_metrics(y_test, y_pred);
+
+    lda_OA = [lda_OA; stats.OA];
+    
+
     
 end
 
 close(h)
-
-
+% 
+%% Plot
 
 figure('Units', 'pixels', ...
     'Position', [100 100 500 375]);
 hold on;
 
 % plot lines
-hLDA = line(test_dims, lda_class);
-hSVM = line(test_dims, svm_class);
+hLDA = line(test_dims, lda_OA);
+hSVM = line(test_dims, svm_OA);
 
 % set some first round of line parameters
 set(hLDA, ...
@@ -105,7 +152,7 @@ set(hSVM, ...
     'Color',        'b', ...
     'LineWidth',    2);
 
-hTitle = title('LE + LDA - Indian Pines');
+hTitle = title('LE + LDA, SVM - Indian Pines');
 hXLabel = xlabel('d-Dimensions');
 hYLabel = ylabel('Correct Rate');
 
@@ -134,9 +181,14 @@ set(gca,...
     'YGrid',        'on',...
     'XColor',       [.3,.3,.3],...
     'YColor',       [.3, .3, .3],...
+    'YLim'      ,   [0 1],...
+    'XLim'      ,   [0 n_components],...
     'YTick'     ,   0:0.1:1,...
-    'XTick'     ,   0:10:100,...
+    'XTick'     ,   0:10:n_components,...
     'LineWidth' ,   1);
 
 %% Save the figure
-print('saved_figures/le_test', '-depsc2');
+print('saved_figures/le_ldasvm_test', '-depsc2');
+
+%%
+% C = cahill_svm(embedding(:,1:20), gt, size(img,1), size(img,2));

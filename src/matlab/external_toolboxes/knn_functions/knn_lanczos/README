@@ -1,0 +1,100 @@
+This program efficiently computes an approximate kNN graph for high
+dimensional data via divide and conquer. Currently it supports only
+dense data (well, of course you can store sparse data using the same
+format as dense data, but this way looses the benefit of the
+exploitable sparsity.) The algorithm has two versions: a glue version
+and an overlap version. Usually, you can set the parameter r (overlap
+size) to be 0.3 and 0.15 for the glue version and the overlap version,
+respectively, for good performance (high quality and low run
+time). But you may need to tune the parameter for a desirable result.
+Note that in the resulting graph, it is not guaranteed that each point
+has exactly k nearest neighbors. But the case of not computing the
+exact number of required neighbors is highly unlikely.
+
+For more information, see:
+
+Reference: Jie Chen, Haw-ren Fang and Yousef Saad. Fast Approximate
+$k$NN Graph Construction for High Dimensional Data via Recursive
+Lanczos Bisection. Journal of Machine Learning Research,
+10(Sep):1989--2012, 2009.
+
+Copyright 2009, The Regents of the University of Minnesota. 
+
+A copy of the licencing agreement is attached in the file LGPL. For
+additional information contact the Free Software Foundation Inc., 59
+Temple Place - Suite 330, Boston, MA 02111, USA or visit the web-site
+
+ http://www.gnu.org/copyleft/lesser.html
+
+This program is free software; you can redistribute and/or modify it
+for NON-COMMERCIAL purposes. This program is distributed in the hope
+that it will be useful, but WITHOUT ANY WARRANTY, including that of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+$Date: 2009/10/13 17:58:57$
+
+
+
+Status
+======
+
+Version: 2009.10.13
+Language: C++
+Require: GSL library   http://www.gnu.org/software/gsl/
+Successfully compiled under gcc 4.2.4 and gsl 1.10
+Maintainer: Jie Chen   University of Minnesota    jchen@cs.umn.edu
+
+
+
+Files in This Directory
+=======================
+
+* main.cpp
+  The main file. This file shows how to use the routines to compute a
+  knn graph. Source files include:
+
+      aux_func.h,       aux_func.cpp
+      dynamic_array.h,  dynamic_array.cpp
+      knn_algo.h,       knn_algo.cpp
+      linear_algebra.h, linear_algebra.cpp
+
+* knn
+  The executable compiled under Ubuntu Linux for the provided main.cpp.
+
+* Makefile
+  An example makefile.
+
+* example.dat
+  An example data file for input. The data is indeed the FREY data set
+  (http://www.cs.toronto.edu/~roweis/data.html), which contains 1965
+  data points of 560 dimensions.
+
+* example.knn
+  An example output knn file.
+
+* README
+  This file.
+
+
+
+Input File Format (ex: example.dat)
+===================================
+
+Every 8-byte is a double precision number. A consecutive chunk of D
+numbers form a D-dimensional data point. There are n data points. Thus
+the input file has 8*n*D bytes.
+
+Note that in order to save storage, this file format is not ASCII. But
+you can modify the function read_X_from_file() in aux_func.cpp to
+accept whatever format you want.
+
+
+
+Output File Format (ex: example.knn)
+====================================
+
+The contents of this file are formatted in 3 columns: i, j, and v. In
+each row, i is a k-nearest-neighbor of j. The Euclidean distance
+between i and j is v. This file is ASCII.
+
+you can modify the function output_knn() in dynamic_array.cpp to
+output whatever format you want.

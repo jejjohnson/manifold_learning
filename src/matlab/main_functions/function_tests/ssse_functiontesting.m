@@ -1,5 +1,5 @@
 %{ 
-This is a sample script for the Laplacian Eigenmaps algorithm.
+This is a sample script for the Schroedinger Eigenmaps algorithm.
 I am going to walk through and deconstruct the script piece-by-piece.
 
 Indian Pines Data Available from:
@@ -27,13 +27,13 @@ clear options
 
 % Spatial knn graph construction options (Adjacency.m)
 clear options
-options.k = 20;
-options.saved = 2;
+options.k = 4;
+options.saved = 0;
 se_options.spatial_nn = options;
 clear options
 
 % Eigenvalue Decompisition options (GraphEmbedding.m)
-options.n_components = 20;
+options.n_components = 150;
 options.constraint = 'degree';
 se_options.embedding = options;
 clear options
@@ -50,63 +50,70 @@ time = toc;
 % number of components we want to keep
 
 
-tic;
-
 fprintf('Schroedinger Eigenmaps: %.3f.\n', time)
-save('saved_data/ssse_eigvals.mat', 'embedding', 'lambda')
+% save('saved_data/ssse_eigvals.mat', 'embedding', 'lambda')
+
 
 %#############################################################
-%% Experiment I - Tuia et al. LDA & SVM w/ Assessment
+%% Experiment II - SVM w/ Assessment versus dimension
 %#############################################################
 
 n_components = size(embedding,2);
-test_dims = (1:2:n_components);
-% testing and training
+test_dims = (1:10:n_components);
 
-lda_class = [];
-svm_class = [];
+% choose training and testing amount
+options.trainPrct = 0.75;
+rng('default');     % reproducibility
+
+lda_OA = [];
+svm_OA = [];
 
 h = waitbar(0, 'Initializing waitbar...');
 
 for dim = test_dims
     
-    waitbar(dim/n_components,h, 'Performing LDA')
+    waitbar(dim/n_components,h, 'Performing SVM classification')
     % # of dimensions
     XS = embedding(:,1:dim);
     
-    [Xtr, Ytr, Xts, Yts , ~, ~] = ppc(XS, gt_Vec, .10);
+    % training and testing samples
+    [X_train, y_train, X_test, y_test] = train_test_split(...
+    embedding, gt_Vec, options);
     
-    % Classifiaction - LDA
-    [Ypred, err] = classify(Xts, Xtr, Ytr);
+    % classifcaiton SVM
+    [y_pred] = svmClassify(X_train, y_train, X_test);
     
-    % Assessment
-    Results = assessment(Yts, Ypred, 'class');
+    [~, stats] = class_metrics(y_test, y_pred);
     
-    lda_class = [lda_class; (100-Results.OA)/100];
-%     svm_class = [svm_class; Results.Kappa];
+    svm_OA = [svm_OA; stats.OA];
     
-    waitbar(dim/n_components,h, 'Performing SVM')
-    % Classification - SVM
-    Ypred = svmClassify(Xtr, Ytr, Xts);
     
-     % Assessment - SVM
-    Results = assessment(Yts, Ypred, 'class');
+    waitbar(dim/n_components,h, 'Performing LDA classification')
+    % classifiaction LDA
+    lda_obj = fitcdiscr(X_train, y_train);
+    y_pred = predict(lda_obj, X_test);
     
-    svm_class = [svm_class; (100-Results.OA)/100];
+    [~, stats] = class_metrics(y_test, y_pred);
+
+    lda_OA = [lda_OA; stats.OA];
+    
+
     
 end
 
 close(h)
 
-
+%------------------------------------------------
+% Plot
+%-----------------------------------------------
 
 figure('Units', 'pixels', ...
     'Position', [100 100 500 375]);
 hold on;
 
 % plot lines
-hLDA = line(test_dims, lda_class);
-hSVM = line(test_dims, svm_class);
+hLDA = line(test_dims, lda_OA);
+hSVM = line(test_dims, svm_OA);
 
 % set some first round of line parameters
 set(hLDA, ...
@@ -145,9 +152,11 @@ set(gca,...
     'YGrid',        'on',...
     'XColor',       [.3,.3,.3],...
     'YColor',       [.3, .3, .3],...
+    'YLim'      ,   [0 1],...
+    'XLim'      ,   [0 n_components],...
     'YTick'     ,   0:0.1:1,...
-    'XTick'     ,   0:10:100,...
+    'XTick'     ,   0:10:n_components,...
     'LineWidth' ,   1);
 
 %% Save the figure
-print('saved_figures/ssse_test', '-depsc2');
+print('saved_figures/ssse_ldasvm_test', '-depsc2');
