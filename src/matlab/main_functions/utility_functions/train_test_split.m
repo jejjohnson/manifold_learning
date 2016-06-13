@@ -27,6 +27,9 @@ function [X_train, y_train, X_test, y_test, idx, masks] = ...
 %               * trainPrnt     :   float, [0, 1]
 %                   ratio of labeled class data to be selected for
 %                   training.
+%               * trainLabels   : int, [0, size(X,1)]
+%                   number of labeled samples per class to be selected 
+%                   training.
 %
 % Returns
 % -------
@@ -102,10 +105,20 @@ for i = 1:numel(uniqueLabels)
     % get indices of points having current class label
     currentClass = find(y==uniqueLabels(i));
     
-    % randomly shuffle them, then select a percentage for training
+    % randomly shuffle them
     ccShuffled = currentClass(randperm(numel(currentClass)));
-    ccTrainInd = ccShuffled(...
-        1:ceil(options.trainPrct*numel(currentClass)));
+    
+    % choose number of training points chosen
+    if isfield(options,'trainPrnt')
+        
+        ccTrainInd = ccShuffled(...
+            1:ceil(options.trainPrnt*numel(currentClass)));
+    elseif isfield(options, 'trainLabels')
+        ccTrainInd = ccShuffled(1:options.trainLabels);
+    else
+        error('no options...');
+    end
+    
     trainMask(ccTrainInd) = true;
     
 end
@@ -128,9 +141,9 @@ idx.test = testInd;
 idx.gt = gtInd;
 
 % save masks for later
-masks.trainMask = trainMask;
-masks.testMask = testMask;
-masks.gtMask = gtMask;
+masks.train = trainMask;
+masks.test = testMask;
+masks.gt = gtMask;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % subfunction parseInputs
@@ -139,6 +152,10 @@ masks.gtMask = gtMask;
 
 function [X, y, options] = parseInputs(...
     X, y, options)
+
+%-------------------------
+% check mandatory fields
+%-------------------------
 
 % Check X data points
 if ~isequal(ndims(X),2) || ~ismatrix(X)
@@ -156,16 +173,34 @@ end
 % check optional fields
 %-------------------------
 
-% check for trainprnt field
-if ~isfield(options, 'trainPrnt')
-    options.trainPrnt = .1;             % default 10% training samples
+% check if both fields present [default - trainPrct]
+if isfield(options, 'trainPrnt') && isfield(options, 'trainLabels')
+    warning('trainPrnt and trainLabels both occupied.'...
+        +' Using trainPrnt');
+    options.rmfield(options, 'trainLabels');
+end
+
+% check if no fields present, [default - 10%]
+if ~isfield(options, 'trainPrnt') && ~isfield(options, 'trainLabels')
+    options.trainPrnt = .1;
 end
 
 % check trainprnt is a float and is between 0 and 1
-if ~isfloat(options.trainPrnt) || options.trainPrnt < 0 || ...
-        options.trainPrnt >1
-    error([mfilename, ':parseInputs:badtrainPrntdata'],...
-        'trainprnt must be a float value between 0 and 1.')
+if isfield(options, 'trainPrnt')
+    if ~isfloat(options.trainPrnt) || options.trainPrnt < 0 || ...
+            options.trainPrnt >1
+        error([mfilename, ':parseInputs:badtrainPrntdata'],...
+            'trainprnt must be a float value between 0 and 1.')
+    end
+end
+
+% check trainLabel is an int between 0 and size(X,1)
+if isfield(options, 'trainLabels')
+    if ~isfloat(options.trainLabels) || options.trainLabels < 0 || ...
+            options.trainLabels > size(X,1)
+        error([mfilename, ':parseInputs:badtrainLabeldata'],...
+            'trainLabel must be an int value between 0 and size(X,1).')
+    end
 end
 
 end

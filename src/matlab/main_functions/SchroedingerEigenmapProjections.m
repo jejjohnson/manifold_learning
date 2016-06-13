@@ -1,4 +1,5 @@
-function [embedding, lambda] = SchroedingerEigenmaps(X, options)
+function [embedding, lambda] = SchroedingerEigenmapProjections(...
+    X, options)
 % SchroedingerEigenmaps
 %     [embedding, lambda] = SchroedingerEigenmaps(data, options)
 % 
@@ -105,12 +106,13 @@ end
 % Compute Embedding
 %==========================================================================
 
-[embedding, lambda ] = GraphEmbedding(W, options.embedding); 
+[embedding, lambda ] = linear_graph_embedding(W, X, options.embedding); 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Subfunction - parseInputs
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function [X, options] = parseInputs(X, options)
+
     
 % check X data inputs
 if ~isequal(ndims(X),2)
@@ -121,7 +123,7 @@ end
 %--------------------------------------------------------------------------
 % check default types
 %--------------------------------------------------------------------------
-    
+
 % if no type
 if ~isfield(options, 'type')
     options.type = 'se';

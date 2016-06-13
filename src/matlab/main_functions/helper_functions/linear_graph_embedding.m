@@ -1,10 +1,10 @@
-function [embedding, lambda] = GraphEmbedding(W, options)
+function [embedding, lambda] = linear_graph_embedding(W, X, options)
 
 
 %==========================================================================
 % Check Inputs
 %==========================================================================
-[W, options] = parseInputs(W, options);
+[W, X, options] = parseInputs(W, X, options);
 
 %==========================================================================
 % Tune the Eigenvalue problem
@@ -69,33 +69,42 @@ end
 %==========================================================================
 
 
-[embedding, lambda] = eigs(A, B, ...
-            round(1.5*(options.n_components+1)),'SA');
-        
-% discard smallest eigenvalue
-embedding = embedding(:, 2:options.n_components+1);
-lambda = diag(lambda); lambda=lambda(2:options.n_components+1);        
+[embedding, lambda] = eigs(X'*A*X, X'*B*X, ...
+            options.n_components+1,'SM');
+               
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Subfunction - parseInputs
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function [W, options] = parseInputs(W, options)
+function [W, X, options] = parseInputs(W, X, options)
     
 % if no type
 if ~isfield(options, 'type')
     options.type = 'le';            % standard laplacian Eigenmaps
 end
 
-% check entry matrix for dimensions and precision
+% check adjacency matrix for dimensions and precision
 if ~isequal(ndims(W),2) || ~isa(W, 'double') 
     error([mfilename, ':parseInputs:baddata'], ...
         'data must be 2-D double precision array');
 end
 
-% check entry matrix for 
+% check data matrix for dimensions and precision
+if ~isequal(ndims(X),2) || ~isa(X, 'double') 
+    error([mfilename, ':parseInputs:badXdata'], ...
+        'data must be 2-D double precision array');
+end
+
+% check adjacency matrix for equal dimensions
 if ~isequal(size(W,1), size(W,2))
-    error([mfilename, ':parseInputs:baddata'], ...
+    error([mfilename, ':parseInputs:badWdata'], ...
+        'data dimensions must be equal');
+end
+
+% check adjacency and data matrix for equal dimensions
+if ~isequal(size(W,1), size(X,1))
+    error([mfilename, ':parseInputs:badXdata'], ...
         'data dimensions must be equal');
 end
 
@@ -110,7 +119,12 @@ end
 
 % number of components
 if ~isfield(options, 'n_components')
-    options.n_components = round(size(W,1)/4);
+    
+    options.n_components = round(size(X,2)/4);
+elseif options.n_components > size(X,2)
+    
+    error([mfilename, ':parseInputs:badn_componentsdata'], ...
+        'n_components must be <= size(X,2).')
 end
 
 % eigenvalue decomposition method
