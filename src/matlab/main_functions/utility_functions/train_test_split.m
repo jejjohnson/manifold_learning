@@ -115,7 +115,7 @@ testMask = ~trainMask;
 
 % get training and testing Indices
 trainInd = find(trainMask);
-testInd = find(testMask);
+testInd = find(testMask&gtMask);
 gtInd = find(gtMask);
 
 % return the training and testing indices

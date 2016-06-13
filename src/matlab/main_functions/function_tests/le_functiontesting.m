@@ -11,7 +11,28 @@ clear all; close all; clc;
 
 %% Load Indian Pines Data
 
-load('saved_data/img_data')
+try
+    
+    load('saved_data/img_data')
+    disp('found previous image data')
+catch
+    % add file path of where my data is located
+    addpath('H:\Data\Images\RS\IndianPines\')
+    % addpath('/media/eman/Emans HDD/Data/Images/RS/IndianPines')
+
+    % load the images
+    load('Indian_pines_corrected.mat');
+    load('Indian_pines_gt.mat');
+
+    % set them to variables
+    img = indian_pines_corrected;
+    gt = indian_pines_gt;
+
+    % clear the path as well as the datafiles 
+    clear indian*
+    % rmpath('/media/eman/Emans HDD/Data/Images/RS/IndianPines')
+    rmpath('H:\Data\Images\RS\IndianPines\')
+end
 
 
 %############################################
@@ -45,46 +66,6 @@ tic;
 fprintf('Laplacian Eigenmaps: %.3f.\n', time)
 % save('saved_data/le_eigvals.mat', 'embedding', 'lambda')
 
-% %#############################################################
-% %% Experiment I - SVM w/ Assessment
-% %#############################################################
-% 
-% %--------------------------------------------------------------------------
-% % Training Versus Testing
-% %--------------------------------------------------------------------------
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% %--------------------------------------------------------------------------
-% % SVM Classification
-% %--------------------------------------------------------------------------
-% 
-%     % classifcaiton SVM
-%     clear options
-%     options.imgVec = embedding;
-%     [y_pred, imgClass] = svmClassify(X_train, y_train, X_test, options);
-%     
-% 
-% %--------------------------------------------------------------------------
-% % Binary Classification Results
-% %--------------------------------------------------------------------------
-% 
-% [~, stats] = class_metrics(y_test, y_pred);
-% %%
-% 
-% % imgClass = reshape(imgClass, [size(img,1), size(img,2)]);
-% % 
-% % figure; imshow(imgClass)
-% 
-% 
-% 
-
-
 %#############################################################
 %% Experiment II - SVM w/ Assessment versus dimension
 %#############################################################
@@ -93,7 +74,7 @@ n_components = size(embedding,2);
 test_dims = (1:10:n_components);
 
 % choose training and testing amount
-options.trainPrct = 0.01;
+options.trainPrct = 0.10;
 rng('default');     % reproducibility
 
 lda_OA = [];

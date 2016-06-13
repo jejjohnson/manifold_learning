@@ -34,7 +34,7 @@ clear options
 
 % Eigenvalue Decompisition options (GraphEmbedding.m)
 options.n_components = 150;
-options.constraint = 'degree';
+options.constraint = 'identity';
 se_options.embedding = options;
 clear options
 
@@ -62,7 +62,7 @@ n_components = size(embedding,2);
 test_dims = (1:10:n_components);
 
 % choose training and testing amount
-options.trainPrct = 0.75;
+options.trainPrct = 0.1;
 rng('default');     % reproducibility
 
 lda_OA = [];
@@ -160,3 +160,43 @@ set(gca,...
 
 %% Save the figure
 print('saved_figures/ssse_ldasvm_test', '-depsc2');
+
+%% Best Results
+rng('default'); % reproducibility
+
+% training and testing
+options.trainPrct = 0.01;
+[X_train, y_train, X_test, y_test, idx, masks] = train_test_split(...
+    embedding(:,1:50), gt_Vec, options);
+
+% svm classificiton (w/ Image)
+statoptions.imgVec = embedding(:,1:50);
+[y_pred, imgClass] = svm_classify(X_train, y_train, X_test, statoptions);
+
+masks.gtMask = reshape(masks.gtMask , [size(img,1) size(img,1)]);
+
+% display ground truth and predicted label image
+labelImg = reshape(imgClass,size(img,1),size(img,1));
+
+figure;
+subplot(2,2,1) ; imshow(gt,[0 max(gt(:))]); 
+title('Ground Truth Class Labels');
+subplot(2,2,2); imshow(masks.gtMask); 
+title('Ground Truth Mask');
+subplot(2,2,3); imshow(labelImg,[0 max(gt(:))]); 
+title('Predicted Class Labels');
+subplot(2,2,4); imshow(labelImg.*(masks.gtMask),[0 max(gt(:))]); 
+title('Predicted Class Labels in Ground Truth Pixels');
+
+% construct accuracy measures
+[~, stats] = class_metrics(y_test, y_pred);
+
+% display results
+fprintf('\nCahills Experiment');
+fprintf('\n\t\t\t\t\t\t\tSSSE\n');
+fprintf('Kappa Coefficient:\t\t\t%6.4f\n',stats.k);
+fprintf('Overall Accuracy:\t\t\t%6.4f\n',stats.OA);
+fprintf('Average Accuracy:\t\t\t%6.4f\n',stats.AA);
+fprintf('Average Precision:\t\t\t%6.4f\n',stats.APr);
+fprintf('Average Sensitivity:\t\t%6.4f\n',stats.ASe);
+fprintf('Average Specificity:\t\t%6.4f\n',stats.ASp);
