@@ -10,22 +10,23 @@ function [W, idx] = Adjacency(data, options)
 %       type    -   str
 %               kernel for the data
 %                   * 'standard' [default]
-%                   * 'similarity'
-%                   * 'dissimilarity'
+%
 %       nn_graph    -   str
 %               type of nearest neighbor graph
 %                     * 'knn' [default]
-%                     * 'connectivity' [TODO]
-%       k           - number of nearest neighbors.
-%               needed for the nn_graph option [default = 20]
+%
+%       k       -   number of nearest neighbors.
+%           needed for the nn_graph option [default = 20]
 %             
 %       kernel  -   type 
-%               weights used for the matrix
-%                   * 'heat' [default]
-%                   * 'cosine'
+%           weights used for the matrix
+%               * 'heat' [default]
+%             	* 'cosine'
+%
 %       sigma   -   parameter for the heat kernel option
-%                 [default = 1.0]
-%       options -   int, [default = 0]
+%
+%           [default = 1.0]
+%       saved   -   int, [default = 0]
 %               this parameter allows one to save their current knn values
 %               found earlier to reduce computation time.
 %               TODO - do multiple integers for multiple saved adjacency
@@ -42,7 +43,12 @@ function [W, idx] = Adjacency(data, options)
 % Information
 % -----------
 % Author: Juan Emmanuel Johnson
+% Email: jej2744@rit.edu
 % Date: 11-Jun-16
+%
+% TODO
+% ----
+% Features: -   make a connectivity matrix
 %==========================================================================
 % Check Inputs - Uses parseInputs; subfunction below
 %==========================================================================

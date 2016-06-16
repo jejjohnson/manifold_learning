@@ -18,29 +18,34 @@ load('saved_data/img_data')
 %############################################
 
 % Knn Graph Construction options (Adjacency.m)
-clear options
+options = [];
 options.type = 'standard';
 options.saved = 1;
 options.k = 20;
-se_options.knn = options;
-clear options
+se_options.spectral_nn = options;
 
 % Spatial knn graph construction options (Adjacency.m)
-clear options
+options = [];
 options.k = 4;
 options.saved = 0;
 se_options.spatial_nn = options;
-clear options
+
 
 % Eigenvalue Decompisition options (GraphEmbedding.m)
+options = [];
 options.n_components = 150;
 options.constraint = 'degree';
 se_options.embedding = options;
-clear options
+
 
 % Schroedinger Eigenmaps options
-se_options.type = 'spatialspectral';
-se_options.image = img;
+options = [];
+options.image = img;
+se_options.ss = options;
+
+
+se_options.type = 'spaspec';
+
 
 
 tic;
@@ -160,8 +165,9 @@ set(gca,...
 
 % Save the figure
 print('saved_figures/ssse_ldasvm_test - 25', '-depsc2');
-
-%% Best Results
+%----------------
+% Best Results
+%----------------
 rng('default'); % reproducibility
 
 % training and testing

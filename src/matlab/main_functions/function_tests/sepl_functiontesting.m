@@ -13,109 +13,68 @@ clear all; close all; clc;
 
 load('saved_data/img_data')
 
-rng('default');     % reproducibility
-%% Get some makeshift partial labels
+%% get some make-shift partial labels
 
-tic;
 X = imgVec; y = gt_Vec;
 
 % extract 10 samples from each class
 options = [];
-options.trainPrnt = .25;
+options.trainPrnt = .10;
 [~, ~, ~, ~, ~, masks] = train_test_split(X, y, options);
-
+tic;
 % set partial labels to be equal to the groundtruth
 p_labels = y;
 
 % let the test mask (unlabeled sample indices) be equal to 0
 p_labels(masks.test) = 0;
 
-% find the number of classes that are greater than 0
-numClasses = numel(unique(y(y>0)));
+%############################################
+%% SchroedingerEigenmaps function test
+%############################################
 
-% construct a cell to hold all of the partial labels
-MLcell = cell(numClasses,1);
-
-% loop through all class labels
-for i = 1:numClasses
-    
-    % find the indices that have label i
-    ind = find(p_labels(p_labels==i));
-    
-    % construct a complete graph w/ those indices
-    MLcell{i} = completeGraph(ind);
-    
-end
-
-% specify the active set of classes to use ML constraints
-MLactive = 1:16;
-
-
-% concatenate ML constraints for all active classes
-ML = cat(1, MLcell{MLactive});
-
-%% display original image
-imgColor = img(:,:,[29 15 12]);
-iCMin = min(imgColor(:));
-iCMax = max(imgColor(:));
-imgColor = uint8(255*(imgColor - iCMin)./(iCMax-iCMin));
-imgColorPad = padarray(imgColor,[1 1],0);
-
-figure; imshow(imgColorPad); title('Indian Pines Image');
-
-%% display active constraints on IndianPines image
-
-%% Construct adjacency matrix
-
+% Spectral KNN Graph Construction options (Adjacency.m)
 options = [];
-options.nn_graph = 'knn';
-options.k = 20;
+options.type = 'standard';
 options.saved = 1;
-
-[W, ~] = Adjacency(imgVec, options);
-
-%% Construct Graph Laplacian
-numNodes = size(W,1);
-D = spdiags(full(sum(W)).', 0, numNodes, numNodes);
-L = D - W;
-
-%% Include ML Constraint's
-
-U = sparse(repmat((1:size(ML,1))', [1 2]), ML, ...
-    [ones(size(ML,1), 1), -ones(size(ML, 1), 1)], ...
-    size(ML,1), size(img,1)*size(img,1));
-
-%% Perform constrain conditioning
-alpha = 17.78;
-constraintConditioning = true;
-if constraintConditioning
-    Dinv = spdiags(1./sum(W,2), 0, size(W,1), size(W,1));
-    U = U*Dinv*W;
-    gamma = 0.0001*alpha;
-else
-    gamma = alpha;
-end
-
-% partial label cluster potential
-UpU = U'*U;
-
-scUEqL = trace(L)./trace(UpU);
-
-% Final matrix
-A = imgVec' * (L + gamma * scUEqL * UpU) * imgVec;
-B = imgVec' * D * imgVec;
-toc;
-%% Find Eigenvalues and Eigenvectors
-numEigs = 150;
+options.k = 20;
+se_options.spectral_nn = options;
 
 
+% Spatial knn graph construction options (Adjacency.m)
+options = [];
+options.k = 4;
+options.saved = 0;
+se_options.spatial_nn = options;
+
+
+% Eigenvalue Decompisition options (GraphEmbedding.m)
+options = [];
+options.n_components = 150;
+options.constraint = 'degree';
+se_options.embedding = options;
+
+
+% partial labels options (PartialLabelsPotential.m)
+options = [];
+options.labels = p_labels;
+options.constraintConditioning = false;
+options.beta = 0.0001;
+se_options.pl = options;
+
+% choosen type of SE
+se_options.type = 'pl';
+
+
+% do Schroedinger Eigenmaps
 tic;
-[embedding, lambda] = eigs(A, B, numEigs, 'SM');
-toc;
+[embedding, lambda] = SchroedingerEigenmaps(imgVec, se_options);
+time = toc;
 
-% project the data
-embedding = imgVec * embedding;
+% number of components we want to keep
 
+
+fprintf('Schroedinger Eigenmaps: %.3f.\n', time)
+% save('saved_data/ssse_eigvals.mat', 'embedding', 'lambda')
 
 %#############################################################
 %% Experiment II - SVM w/ Assessment versus dimension
@@ -125,7 +84,6 @@ n_components = size(embedding,2);
 test_dims = (1:10:n_components);
 
 % choose training and testing amount
-options = [];
 options.trainPrct = 0.25;
 rng('default');     % reproducibility
 
@@ -187,7 +145,7 @@ set(hSVM, ...
     'Color',        'b', ...
     'LineWidth',    2);
 
-hTitle = title('SEPPL + LDA, SVM - Indian Pines - 25');
+hTitle = title('SSSE + LDA, SVM - Indian Pines - 25');
 hXLabel = xlabel('d-Dimensions');
 hYLabel = ylabel('Correct Rate');
 
@@ -223,7 +181,7 @@ set(gca,...
     'LineWidth' ,   1);
 
 % Save the figure
-print('saved_figures/seppl_ldasvm_test - 25', '-depsc2');
+print('saved_figures/ssse_ldasvm_test - 25', '-depsc2');
 
 %% Best Results
 rng('default'); % reproducibility
@@ -264,86 +222,3 @@ fprintf('Average Accuracy:\t\t\t%6.4f\n',stats.AA);
 fprintf('Average Precision:\t\t\t%6.4f\n',stats.APr);
 fprintf('Average Sensitivity:\t\t%6.4f\n',stats.ASe);
 fprintf('Average Specificity:\t\t%6.4f\n',stats.ASp);
-
-%%
-
-% %%
-% % number of desired training datapoints per class
-% num_training = 10;
-% % ground truth vector
-% y = gt_Vec;
-% 
-% % get a ground truth mask
-% gtMask = (y~=0);
-% 
-% % unique groundtruth class labels
-% uniqueLabels = unique(y(gtMask));
-% 
-% % loop through each class, selecting training data
-% trainMask = false(size(y));
-% for i = 1:numel(uniqueLabels)
-%     
-%     % get indices of points having current class label
-%     currentClass = find(y==uniqueLabels(i));
-%     
-%     % randomly shuffle them
-%     ccShuffled = currentClass(randperm(numel(currentClass)));
-%     
-%     % select a number for training
-%     ccTrainInd = ccShuffled(1:num_training);
-%     
-%     % get training mask
-%     trainMask(ccTrainInd) = true;
-%     
-% end
-%         
-% 
-% % create test mask
-% testMask = ~trainMask;
-% 
-% % get training and testing Indices
-% trainInd = find(trainMask);
-%     
-%     
-
-
-
-
-
-
-% %############################################
-% %% SchroedingerEigenmaps function test
-% %############################################
-% 
-% % Knn Graph Construction options (Adjacency.m)
-% options = [];
-% options.type = 'standard';
-% options.saved = 1;
-% options.k = 20;
-% se_options.knn = options;
-% 
-% % Spatial knn graph construction options (Adjacency.m)
-% options = [];
-% options.k = 4;
-% options.saved = 0;
-% se_options.spatial_nn = options;
-% 
-% % Eigenvalue Decompisition options (GraphEmbedding.m)
-% options = [];
-% options.n_components = 150;
-% options.constraint = 'identity';
-% se_options.embedding = options;
-% 
-% 
-% % Schroedinger Eigenmaps options
-% se_options.type = 'partiallabels';
-% se_options.image = img;
-% se_options.alpha = 100;
-% 
-% [embedding, lambda] = SchroedingerEigenmapProjections(imgVec, se_options);
-% 
-% % project the data
-% embedding = imgVec*embedding;
-% 
-% % fprintf('Schroedinger Eigenmaps: %.3f.\n', time)
-% % save('saved_data/ssse_eigvals.mat', 'embedding', 'lambda')

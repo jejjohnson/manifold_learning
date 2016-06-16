@@ -3,10 +3,11 @@ function V = SpatialSpectralPotential(WData, CData, idx, options)
 %   cluster information in Schroedinger operator
 % usage: V = SpatialSpectralPotential(EData,CData,idx,options);
 %
-% arguments:
-%   EData (N x M) - data used to define edge weights (N data points, M
+% Parameters
+% ----------
+% EData (N x M) - data used to define edge weights (N data points, M
 %       dimensions)
-%   CData (N x P) - data used to define cluster potential weights (N data 
+% CData (N x P) - data used to define cluster potential weights (N data 
 %       points, P dimensions)
 %   valFlag (boolean scalar) - specifies whether to create nondiagonal
 %       potentials using Gilles-Bowles weight (false) or Shi-Malik weight
@@ -21,6 +22,10 @@ function V = SpatialSpectralPotential(WData, CData, idx, options)
 %   V (sparse NxN) - matrix of nondiagonal potentials encoding spatial
 %       information for Schroedinger operator
 %
+% Returns
+% -------
+% 
+%
 % v1  
 % Author: Nathan D. Cahill
 % Email: nathan.cahill@rit.edu
@@ -33,6 +38,7 @@ function V = SpatialSpectralPotential(WData, CData, idx, options)
 %==========================================================================
 % Check Inputs
 %==========================================================================
+
 [WData, CData, idx, options] = parseInputs(WData, CData, idx, options);
 
 %==========================================================================
@@ -120,8 +126,8 @@ end
 % default kernel for trade off
 if ~isfield(options, 'clusterkernel')
     options.clusterkernel = 'heat';
-elseif ~strcomp(lower(options.clusterkernel),'heat') || ...
-        ~strcomp(lower(options.clusterkernel),'heat')
+elseif ~strcmp(options.clusterkernel,'heat') || ...
+        ~strcmp(options.clusterkernel,'heat')
     error([mfilename,':parseInputs:badclusterkernel'],...
         'clusterkernel must be either "heat" or "angle".');
 end
