@@ -1,4 +1,4 @@
-function [embedding, lambda] = LocalityPreservingProjections(X, options)
+function [varargout] = LocalityPreservingProjections(X, options)
 % LaplacianEigenmaps
 %     [embedding, lambda] = LaplacianEigenmaps(data, options)
 % 
@@ -48,10 +48,22 @@ function [embedding, lambda] = LocalityPreservingProjections(X, options)
 
 [W, ~] = Adjacency(X, options.knn);
 
+
 %==========================================================================
 % Compute Embedding
 %==========================================================================
 
-[embedding, lambda] = linear_graph_embedding(W, X, options.embedding); 
+[embedding, lambda] = LinearGraphEmbedding(W, X, options.embedding); 
+
+switch nargout
+    case 1
+        varargout{1} = embedding;
+    case 2
+        varargout{1} = embedding;
+        varargout{2} = lambda;
+        
+    otherwise
+        error('Improper number of varagout.');
+end
 
 end

@@ -1,4 +1,4 @@
-function [C, stats] = class_metrics(y_test, y_pred)
+function [C, stats] = classmetrics(y_test, y_pred)
 
 % construct the confusion matrix
 C = confusionmat(y_test, y_pred);
@@ -12,6 +12,7 @@ stats.AA = nanmean(R(:,11));
 stats.APr = nanmean(R(:,12));
 stats.ASe = nanmean(R(:,13));
 stats.ASp = nanmean(R(:,14));
+
 
 
 

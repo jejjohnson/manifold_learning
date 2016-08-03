@@ -11,7 +11,7 @@ clear all; close all; clc;
 
 %% Load Indian Pines Data
 
-load('saved_data/img_data')
+load('main_functions/function_tests/saved_data/img_data')
 
 %% get some make-shift partial labels
 

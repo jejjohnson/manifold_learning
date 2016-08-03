@@ -1,4 +1,4 @@
-function [embedding, lambda] = LaplacianEigenmaps(data, options)
+function [varargout] = LaplacianEigenmaps(data, options)
 % LaplacianEigenmaps
 %     [embedding, lambda] = LaplacianEigenmaps(data, options)
 % 
@@ -53,5 +53,16 @@ function [embedding, lambda] = LaplacianEigenmaps(data, options)
 %==========================================================================
 
 [embedding, lambda ] = GraphEmbedding(W, options.embedding); 
+
+switch nargout
+    case 1
+        varargout{1} = embedding;
+    case 2
+        varargout{1} = embedding;
+        varargout{2} = lambda;
+        
+    otherwise
+        error('Improper number of varagout.');
+end
 
 end

@@ -1,4 +1,4 @@
-function [embedding, lambda] = linear_graph_embedding(W, X, options)
+function [embedding, lambda] = LinearGraphEmbedding(W, X, options)
 
 
 %==========================================================================
@@ -10,58 +10,79 @@ function [embedding, lambda] = linear_graph_embedding(W, X, options)
 % Tune the Eigenvalue problem
 %==========================================================================
 
+% compute standard Laplacian matrix
+D = spdiags(sum(W,2), 0, size(W,1), size(W,1));
+L = D-W;
+
 switch options.type
     
+    % standard laplacian eigenmaps
     case 'le'
         % compute the Laplacian Matrix
-        D = spdiags(sum(W,2), 0, size(W,1), size(W,1));
-        A = D-W;
+        A = L;
         
-        % compute the constraint matrix
-        if strcmp(options.constraint, 'degree')
-            B = D;
-        elseif strcmp(options.constraint, 'identity')
-            B = speye(size(W,1));
-        else
-            error('Unrecognized constraint matrix')
-            
-        end
+    % spatial-spectral schroedinger eigenmaps 
+    case 'ss'
         
-
-        
-    case 'ssse'
-        
-        % compute Laplacian matrix
-        D = spdiags(sum(W,2), 0, size(W,1), size(W,1));
-        L = D-W;
-        
-
         % compute spatial-spectral potential
-        V = SpatialSpectralPotential(options.weightdata,...
-            options.clusterdata, ...
-            options.idx,...
-            options.ssse);
+        V = SpatialSpectralPotential(options.ss.weightdata,...
+            options.ss.clusterdata, ...
+            options.ss.idx,...
+            options.ss);
         
         % Tune the trade off
-        A = L + options.alpha * trace(L)./trace(V) * V;
+        A = L + options.ss.alpha * trace(L)./trace(V) * V;
+    
+    % partial-labels schroedinger eigenmaps
+    case 'pl'
+
+        % compute the partial labels potential
+        V = PartialLabelsPotential(options.pl.labels, ...
+            options.pl);
         
-        %------------------------------
-        % compute the constraint matrix
-        %------------------------------
+        % tune the trade off
+        A = L + options.pl.beta * trace(L)./trace(V) * V;
         
-        % diagonal degree matrix
-        if strcmp(options.constraint, 'degree')
-            B = D;
-            
-        % identity matrix
-        elseif strcmp(options.constraint, 'identity')
-            B = speye(size(W,1));
-        else
-            error('Unrecognized constraint matrix')
-            
-        end
+    % spatial-spectral w/ partial-labels schroedinger eigenmaps
+    case 'sspl'
         
+        % compute the partial labels potential
+        Vss = PartialLabelsPotential(options.pl.labels, ...
+            options.pl);
         
+        % compute spatial-spectral potential
+        Vpl = SpatialSpectralPotential(options.ss.weightdata,...
+            options.ss.clusterdata, ...
+            options.ss.idx,...
+            options.ss);
+        
+        % tune trade off
+        A = L + options.ss.alpha* trace(L)./trace(Vss) * Vss + ...
+            options.pl.beta * trace(L)./trace(Vpl) * Vpl;
+        
+    otherwise 
+        error('Unrecognized Laplacian tuner.')
+           
+end
+
+%==========================================================================
+% Compute the constraint matrix
+%==========================================================================
+
+% diagonal degree matrix
+switch options.constraint
+    
+    % standard diagonal degree matrix
+    case 'degree'
+        B = D;
+     
+    % identity matrix
+    case 'identity'
+        
+        B = speye(size(W,1));
+        
+    otherwise
+        error('Unrecognized constraint matrix')
 end
 
 %==========================================================================

@@ -1,5 +1,5 @@
 function [X_train, y_train, X_test, y_test, idx, masks] = ...
-    train_test_split(X, y, options)
+    traintestsplit(X, y, options)
 % train_test_splot used to output training and testing data and labels.
 %
 % Function reads in X data and y labels. Returns X_train and X_test 
