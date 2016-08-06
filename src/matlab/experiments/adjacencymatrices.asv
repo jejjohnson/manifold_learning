@@ -38,7 +38,7 @@ imgVec = reshape(img, [numRows*numCols numSpectra]);
 %=========================================%
 % k-Nearest Neighbors - Indian Pines      %
 %=========================================%
-sigmas = [1, 1:5:100];
+kNNs = [1, 1:5:100];
 
 options.type = 'standard';
 options.saved = 0;
@@ -47,7 +47,7 @@ options.saved = 0;
 
 count = 1;
 tic;
-for ik = sigmas
+for ik = kNNs
     options.k = ik;
     % find the knns w/ function
     
@@ -95,7 +95,7 @@ imgVec = reshape(img, [numRows*numCols numSpectra]);
 %=========================================%
 clear W
 % kNNs = [1, 5:5:100];
-sigmas = [35:5:100];
+kNNs = [35:5:100];
 options.type = 'standard';
 options.saved = 0;
 
@@ -103,7 +103,7 @@ options.saved = 0;
 
 count = 1;
 tic;
-for ik = sigmas
+for ik = kNNs
     options.k = ik;
     
     [varString, ~] = Adjacency(imgVec, options);

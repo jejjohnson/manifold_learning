@@ -1,4 +1,4 @@
-% Different Adjacency Matrices - 
+% Different Sigma Matrices - 
 %
 %
 % Data 
@@ -38,31 +38,35 @@ imgVec = reshape(img, [numRows*numCols numSpectra]);
 %=========================================%
 % k-Nearest Neighbors - Indian Pines      %
 %=========================================%
-sigmas = [1, 1:5:100];
+sigmas = logspace(-1,2,10);
 
 options.type = 'standard';
-options.saved = 0;
+options.k = 20;                     % 20 k-nearest neighbors
+options.saved = 1;                  % save the knn parameters calculated
 
 
 
 count = 1;
-tic;
-for ik = sigmas
-    options.k = ik;
+
+for iSigma = sigmas
+    tic;
+    options.sigma = iSigma;
+    
     % find the knns w/ function
     
     [varString, ~] = Adjacency(imgVec, options);
-    saveString = char(sprintf('experiments/saved_data/adjacency/IndianPines_k%d', ik));
+    saveString = ['H:\Data\saved_data\sigma_results\IndianPines' ...
+        char(sprintf('_sigma%d', options.k, count))];
     
-    save(saveString, 'varString');
-    
-    count = count + 1;
-    
+    save(saveString, 'varString', 'sigmas', 'options');  % save variable to file
+    options.saved = 1;              % use saved knn parameters calculated
+    count = count + 1;              % loop counter
+    toc;
 end
 
 % save the results to folder
 
-toc;
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % PAVIA UNIVERSITY
@@ -93,29 +97,30 @@ imgVec = reshape(img, [numRows*numCols numSpectra]);
 %=========================================%
 % k-Nearest Neighbors - Indian Pines      %
 %=========================================%
-clear W
-% kNNs = [1, 5:5:100];
-sigmas = [35:5:100];
+sigmas = logspace(-1,2,10);
+
 options.type = 'standard';
-options.saved = 0;
+options.k = 20;                     % 20 k-nearest neighbors
+options.saved = 1;                  % save the knn parameters calculated
 
 
 
 count = 1;
-tic;
-for ik = sigmas
-    options.k = ik;
+
+for iSigma = sigmas
+    tic;
+    options.sigma = iSigma;
     
     [varString, ~] = Adjacency(imgVec, options);
-    saveString = char(sprintf('experiments/saved_data/adjacency/Pavia_k%d', ik));
+    saveString = ['H:\Data\saved_data\sigma_results\Pavia' ...
+        char(sprintf('_sigma%d', options.k, count))];
     
-    save(saveString, 'varString');
-    
-    count = count + 1;
-    
+    save(saveString, 'varString', 'sigmas', 'options');  % save variable to file
+    options.saved = 1;              % use saved knn parameters calculated
+    count = count + 1;              % loop counter
+    toc;
 end
 
-% save the results to folder
-save experiments/saved_data/adjacencyPavia W
-toc;
+
+
     

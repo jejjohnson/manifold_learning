@@ -1,31 +1,36 @@
-function [varargout] = alignment(Data, options)
+function [varargout] = manifoldalignment(Data, Options)
+
+% Extract Options
+AlignmentOptions = Options.AlignmentOptions;
+PotentialOptions = Options.PotentialOptions;
+AdjacencyOptions = Options.AdjacencyOptions;
 
 % get data
-nSamplesTotal = []; 
-dDomainsTotal = [];
+nSamplesTotal = 0; 
+dDomainsTotal = 0;
 X = cell(numel(Data));
 Y = cell(numel(Data));
-Domains = cell(numel(data));
-Samples = cell(numel(data));
+Domains = cell(numel(Data));
+Samples = cell(numel(Data));
 YBlock = [];
 Z = [];
 
 for idomain = 1:numel(Data)
     % labeled and unlabeled matrix
-    X{idomain} = [Data{idomain}.X.labeled, Data{idomain}.X.unlabeled];
+    X{idomain} = [Data{idomain}.X.labeled; Data{idomain}.X.unlabeled];
     
     % block data matrix
-    Z = sparseblkdiag(Z, X{idomain});
+    Z = sparse(blkdiag(Z, X{idomain}));
     
-    Y{idomain} = [Data{idomain}.Y.Labeled, ...
-        zeros(size(Data{idomain}.X.unlabeled), 1)];
+    Y{idomain} = [Data{idomain}.Y.labeled; ...
+        zeros(size(Data{idomain}.X.unlabeled, 1), 1)];
     
-    YBlock = [YBlock, Y{idomain}];
+    YBlock = [YBlock; Y{idomain}];
     
 
     
         
-    [Domains{idomain}, Samples{idomain}] = size(X{idomain});
+    [Samples{idomain}, Domains{idomain}] = size(X{idomain});
     
     dDomainsTotal = Domains{idomain} + dDomainsTotal;           % total number of dimensions
     nSamplesTotal = Samples{idomain} + nSamplesTotal;            % total number of samples
@@ -42,10 +47,9 @@ A = cell(numel(Data));
 
 for idomain = 1:numel(Data)
     
-    A{idomain} = Adjacency(X{idomain}, options);
+    A{idomain} = Adjacency(X{idomain}, AdjacencyOptions);
     
-    P = sparseblk([P, Potential(A{idomain}, options)]);  % Block Potential Matrix
-    W = sparseblk([W, A{idomain}]);                             % Block Adjacency Matrix
+    W = sparse(blkdiag(W, A{idomain}));                             % Block Adjacency Matrix
     
 end
 
@@ -71,7 +75,7 @@ WDissimilarity(:, YBlock == 0) = 0;
 WDissimilarity = double(WDissimilarity);
 
 % SSMA Voodoo
-if isequal(options.type, 'ssma')
+if isequal(Options.AlignmentOptions.type, 'ssma')
     Sws = sum(sum(WSimilarity));
     Sw = sum(sum(W));
     WSimilarity = WSimilarity/Sws * Sw;
@@ -81,7 +85,7 @@ if isequal(options.type, 'ssma')
 end
 
 % Save matrices
-if options.printing == 1
+if AlignmentOptions.printing == 1
     figure;
     spy(W)
     print('..', '-depsc2')
@@ -108,20 +112,20 @@ DDissimilarity = sum(WDissimilarity, 2);
 LDissimilarity = diag(DDissimilarity) - WDissimilarity;
 
 % Alignment Tuner
-switch lower(options.type)
+switch lower(AlignmentOptions.type)
     
     case 'ssma'
         
-        A = ((1-options.mu) * L ) + options.mu * LSimilarity + ...
-            options.lambda * eye(size(L));
+        A = ((1-AlignmentOptions.mu) * L ) + AlignmentOptions.mu * LSimilarity + ...
+            AlignmentOptions.lambda * eye(size(L));
         A = Z' * A * Z;
-        B = LDissimilarity + options.lambda * eye(size(LDissimilarity));
+        B = LDissimilarity + AlignmentOptions.lambda * eye(size(LDissimilarity));
         B = Z' * B * Z;
         
     case 'wang'
         
-         A  = ((1-options.mu) * L ) + options.mu * LSimilarity + ...
-            options.lambda * eye(size(L));
+         A  = ((1-AlignmentOptions.mu) * L ) + AlignmentOptions.mu * LSimilarity + ...
+            AlignmentOptions.lambda * eye(size(L));
         
         A = Z' * A * Z;
         
@@ -131,12 +135,16 @@ switch lower(options.type)
         
         for idomain = 1:numel(Data)
              
-            % Block Potential Matrix
-            P = sparseblk([P, Potential(A{idomain}, options)]);  
+            % construct the spatial adjacency matrix
+            [~, idxP] = Adjacency(pData{idomain}, PotentialOptions.spatial_nn);
+            
+            % assuign the 
+            
+            P = sparseblkdiag([P, potential(A{idomain}, PotentialOptions)]);  
         end
         
-         A  = (L + options.alpha * P) + options.mu * LSimilarity + ...
-            options.lambda * eye(size(L));
+         A  = (L + AlignmentOptions.alpha * P) + AlignmentOptions.mu * LSimilarity + ...
+            AlignmentOptions.lambda * eye(size(L));
         
         A = Z' * A * Z;
         
@@ -151,6 +159,25 @@ end
 %======================
 % Generalized Problem
 %======================
+if ~isfield(AlignmentOptions, 'nComponents') || ...
+        isequal(AlignmentOptions.nComponents, 'default')
+    nComponents = dDomainsTotal;
+end
+
+warning('off')
+[embedding, lambda] = eigs(A, B, nComponents,'SM');
+warning('on')
+        
+% Outputs
+switch nargout
+    case 1
+        varargout{1} = embedding;
+    case 2
+        varargout{1} = embedding;
+        varargout{2} = lambda;
+    otherwise
+        error('Incorrect number of outputs.');
+end
 
         
 

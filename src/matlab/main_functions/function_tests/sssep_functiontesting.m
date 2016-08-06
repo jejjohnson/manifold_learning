@@ -74,7 +74,7 @@ for dim = test_dims
     XS = embedding(:,1:dim);
     
     % training and testing samples
-    [X_train, y_train, X_test, y_test] = train_test_split(...
+    [X_train, y_train, X_test, y_test] = traintestsplit(...
     XS, gt_Vec, options);
     
     % classifcaiton SVM

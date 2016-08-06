@@ -72,9 +72,13 @@ switch options.type
                 disp('previous spectral dist values not found..')
                 disp('computing knn...')
                 tic;
-                % find the k nearest neighbors
-                [idx, dist] = knnsearch(data, data,'k', ...
-                    options.k+1, 'Distance', options.distance);
+                % initialize the KD Tree Model
+                KDModel = KDTreeSearcher(data, ...
+                    'Distance', options.distance);
+
+                % query the vector for k nearest neighbors
+                [idx, dist]=knnsearch(KDModel, data,'k',...
+                options.k+1);    
 
                 % discard the first distance
                 idx = idx(:, 2:end); dist = dist(:, 2:end);
@@ -88,31 +92,8 @@ switch options.type
                 save('saved_data/dist_standard', 'idx', 'dist', 'time') 
             end
         elseif options.saved == 2
-            try
-                load('saved_data/dist_spatial')
-                disp('previous spatial distance values found...')
-            catch
-                disp('previous spatial distance values not found...')
-                disp('computing knn distance')
-                tic;
-                % find the k nearest neighbors
-                [idx, dist] = knnsearch(data, data,'k', ...
-                    options.k+1, 'Distance', options.distance);
-
-                % discard the first distance
-                idx = idx(:, 2:end); dist = dist(:, 2:end);
-                time = toc;
-
-                % print the time taken
-                fprintf('Knn Search: %.3f.s\n', time)
-
-                % save data for later
-                disp('saving spatial distance values for later...')
-                save('saved_data/dist_spatial', 'idx', 'dist', 'time') 
-            end
-        else
+            disp('computing knn distance')
             tic;
-            
             % initialize the KD Tree Model
             KDModel = KDTreeSearcher(data, ...
                 'Distance', options.distance);
@@ -127,6 +108,23 @@ switch options.type
 
             % print the time taken
             fprintf('Knn Search: %.3f.s\n', time)
+
+            % save data for later
+            disp('saving spectral distance values for later...')
+            save('saved_data/dist_standard', 'idx', 'dist', 'time') 
+        else
+            
+            % initialize the KD Tree Model
+            KDModel = KDTreeSearcher(data, ...
+                'Distance', options.distance);
+            
+            % query the vector for k nearest neighbors
+            [idx, dist]=knnsearch(KDModel, data,'k',...
+            options.k+1);    
+
+            % discard the first distance
+            idx = idx(:, 2:end); dist = dist(:, 2:end);
+
 
         end
 
@@ -164,7 +162,6 @@ end
 switch options.type
     
     case 'standard'
-        
         % construct a sparse adjacency matrix
         W = sparse(repmat((1:size(data,1))', [1 options.k]),...
             idx, w, size(data,1), size(data,1));

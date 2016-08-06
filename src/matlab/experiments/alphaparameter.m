@@ -1,4 +1,4 @@
-% Classification Experiment - I
+% Parameter Exploration - Alpha
 % 
 %
 % Data
@@ -19,7 +19,6 @@
 % * AA      - Average Accuracy
 % * k       - Kappa Coefficient
 % * AP      - Average Precision
-% * Recall  - Recall
 % * Dim     - Dimension
 % * F1      - F1 Statistic
 % * Time    - Time For Complete Algorithm (secs)
@@ -53,14 +52,34 @@ clear all; close all; clc;
 % Gather Data for experiment %
 %============================%
 
-% add specific directory to matlab space
-addpath('H:\Data\Images\RS\IndianPines\');      % specific to PC
+dataset = 'pavia';
 
-img = importdata('Indian_pines_corrected.mat');
-imgGT = importdata('Indian_pines_gt.mat');
+switch lower(dataset)
+    case 'indianpines'
 
-% remove path from matlab space
-rmpath('H:\Data\Images\RS\IndianPines\');  
+        % add specific directory to matlab space
+        addpath('H:\Data\Images\RS\IndianPines\');      % specific to PC
+
+        img = importdata('Indian_pines_corrected.mat');
+        imgGT = importdata('Indian_pines_gt.mat');
+
+        % remove path from matlab space
+        rmpath('H:\Data\Images\RS\IndianPines\');  
+    case 'pavia'
+        
+        % add specific directory to matlab space
+        addpath('H:\Data\Images\RS\Pavia\');      % specific to PC
+
+        img = importdata('PaviaU.mat');
+        img_gt = importdata('PaviaU_gt.mat');
+
+        % remove path from matlab space
+        rmpath('H:\Data\Images\RS\Pavia\');  
+        
+    otherwise
+        error('Unrecognized dataset.');
+end
+        
 
 %=========================================%
 % Reorder and Rescale data into 2-D Array %
@@ -78,8 +97,16 @@ gtVec = reshape(imgGT, [numRows*numCols 1]);
 
 options = [];
 options.type = 'standard';
-options.saved = 1;
 options.k = 20;
+
+switch lower(dataset)
+    case 'indianpines'
+        options.saved = 2;
+    case 'pavia'
+        options.saved = 1;
+    otherwise
+        error('Unrecognized dataset type.');
+end
 
 % save spectral knn options 
 sep_options.spectral_nn = options;              % SEP Algorithm
@@ -177,7 +204,20 @@ for icount = 1:count
 end
 
 % save the statistics for later
-save_path = 'H:\Data\saved_data\alpha_results\indian_pines\sep_';
+switch lower(dataset)
+    case 'indianpines'
+        
+        save_path = 'H:\Data\saved_data\alpha_results\indian_pines\sep_';
+        
+    case 'pavia'
+        
+        save_path = 'H:\Data\saved_data\alpha_results\pavia\sep_';
+        
+    otherwise
+        
+        error('Unrecognized dataset.');
+end
+
 save_str = char([ save_path sprintf('alpha_k%d', 20)]);
 save(save_str, 'embedding', 'statssep')
 
@@ -236,8 +276,20 @@ for icount = 1:count
 end
 
 %% save the statistics for later
-statsse = statssep;
-save_path = 'H:\Data\saved_data\alpha_results\indian_pines\se_';
+switch lower(dataset)
+    case 'indianpines'
+        
+        save_path = 'H:\Data\saved_data\alpha_results\indian_pines\se_';
+        
+    case 'pavia'
+        
+        save_path = 'H:\Data\saved_data\alpha_results\pavia\se_';
+        
+    otherwise
+        
+        error('Unrecognized dataset.');
+end
+
 save_str = char([ save_path sprintf('alpha_k%d', 20)]);
 save(save_str, 'embedding', 'statsse')
 
