@@ -63,40 +63,65 @@ AdjacencyOptions.saved = 0;
 
 Options.AdjacencyOptions = AdjacencyOptions;
 
-% potentialmatrix options
+% spatial spectral potential matrix options
 PotentialOptions = [];
 PotentialOptions.type = 'spaspec';
 PotentialOptions.clusterSigma = 1;
 PotentialOptions.clusterkernel = 'heat';
 PotentialOptions.weightSigma = 1;
 
-spatialAdjacency.type = 'standard';
-spatialAdjacency.nn_graph = 'knn';
-spatialAdjacency.k = 4;
-spatialAdjacency.kernel = 'heat';
-spatialAdjacency.sigma = 1;
-spatialAdjacency.saved = 0;
+% spatial adjacency matrix options
+SpatialAdjacency.type = 'standard';
+SpatialAdjacency.nn_graph = 'knn';
+SpatialAdjacency.k = 4;
+SpatialAdjacency.kernel = 'heat';
+SpatialAdjacency.sigma = 1;
+SpatialAdjacency.saved = 0;
 
-PotentialOptions.spatialAdjecency = spatialAdjacenc
+% save spatial adjacency matrix options
+PotentialOptions.SpatialAdjacency = SpatialAdjacency;
+
+% save potential options
 Options.PotentialOptions = PotentialOptions;
 
 
-
-
-% alignment options
+% manifold alignment options
 AlignmentOptions = [];
-AlignmentOptions.type = 'sssema'; %'ssma';
+AlignmentOptions.type = 'ssma'; %'ssma';
 AlignmentOptions.nComponents = 'default';
 AlignmentOptions.printing = 0;
 AlignmentOptions.lambda = 0;
 AlignmentOptions.mu = .2;
+AlignmentOptions.alpha = .2;
 
 
+% save Alignment options
 Options.AlignmentOptions = AlignmentOptions;
 
 
-embedding = manifoldalignment(Data, Options);
+% Manifold Alignment
+projectionFunctions = manifoldalignment(Data, Options);
 
+%% Projection Functions
+
+embedding = manifoldprojections(Data, projectionFunctions, 'ssma');
+
+%%
+
+% get the number of components and test dimensions
+nDomains = numel(Data);
+nComponents = size(embedding,2);
+testDims = (1:5:nComponents);
+
+X1labeled = Data{1}.X.labeled;
+X2labeled = Data{2}.X.labeled;
+
+size(X1labeled), size(X2labeled)
+%% Classification
+classoptions = [];
+classoptions.method = 'svm';
+
+stats = alignmentclassification(Data, embedding, classoptions);
 
 
 

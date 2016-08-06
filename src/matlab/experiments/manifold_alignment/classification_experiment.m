@@ -8,7 +8,9 @@ clear all; close all; clc;
 dataset = 'vcu';
 
 switch lower(dataset)
+    
     case 'vcu'
+        
         % Import Images
         load H:\Data\Images\RS\VCU\vcu_images.mat;
         
@@ -32,12 +34,10 @@ switch lower(dataset)
             % convert ground truth to array
             [ImageData{iImage}.gtVec, ImageData{iImage}.gtdims] = imgtoarray(ImageData{iImage}.gt);
         end
-
         
     otherwise
         error('Unrecognized dataset chosen.');
 end
-
 
 % Get Data in appropriate form
 Options.trainPrct = .1;
@@ -47,7 +47,6 @@ Data = getdataformat(ImageData, Options);
 %=================================\
 %% Manifold Alignment
 %=================================%
-
 
 % Semisupervised Manifold Alignment
 Options = [];
@@ -63,13 +62,14 @@ AdjacencyOptions.saved = 0;
 
 Options.AdjacencyOptions = AdjacencyOptions;
 
-% potentialmatrix options
+% spatial spectral potential matrix options
 PotentialOptions = [];
 PotentialOptions.type = 'spaspec';
 PotentialOptions.clusterSigma = 1;
 PotentialOptions.clusterkernel = 'heat';
 PotentialOptions.weightSigma = 1;
 
+% spatial adjacency matrix options
 SpatialAdjacency.type = 'standard';
 SpatialAdjacency.nn_graph = 'knn';
 SpatialAdjacency.k = 4;
@@ -77,26 +77,38 @@ SpatialAdjacency.kernel = 'heat';
 SpatialAdjacency.sigma = 1;
 SpatialAdjacency.saved = 0;
 
+% save spatial adjacency matrix options
 PotentialOptions.SpatialAdjacency = SpatialAdjacency;
 
+% save potential options
 Options.PotentialOptions = PotentialOptions;
-
 
 % manifold alignment options
 AlignmentOptions = [];
-AlignmentOptions.type = 'sssema'; %'ssma';
+AlignmentOptions.type = 'ssma'; %'ssma';
 AlignmentOptions.nComponents = 'default';
 AlignmentOptions.printing = 0;
 AlignmentOptions.lambda = 0;
 AlignmentOptions.mu = .2;
 AlignmentOptions.alpha = .2;
 
-
+% save Alignment options
 Options.AlignmentOptions = AlignmentOptions;
 
+% Manifold Alignment
+projectionFunctions = manifoldalignment(Data, Options);
 
-embedding = manifoldalignment(Data, Options);
+%% Projection Functions
 
+embedding = manifoldprojections(Data, projectionFunctions, 'ssma');
+
+
+%% Classification
+ClassOptions = [];
+ClassOptions.method = 'lda';
+ClassOptions.dimStep = 4;
+
+stats = alignmentclassification(Data, embedding, ClassOptions);
 
 
 
