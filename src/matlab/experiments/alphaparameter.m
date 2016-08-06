@@ -82,22 +82,9 @@ options.saved = 1;
 options.k = 20;
 
 % save spectral knn options 
-lpp_options.knn = options;                      % LPP Algorithm
 sep_options.spectral_nn = options;              % SEP Algorithm
-le_options.knn = options;                       % LE Algorithm
 se_options.spectral_nn = options;               % SE Algorithm
 
-%=================================%
-% Spatial K-NN Graph Construction %
-%=================================%
-
-options = [];
-options.k = 4;
-options.saved = 0;
-
-% save spatial knn options
-sep_options.spatial_nn = options;               % SEP Algorithm
-se_options.spatial_nn = options;                % SE Algorithm
 
 %=================================%
 % Eigenvalue Decompsition Options %
@@ -129,70 +116,153 @@ se_options.ss = options;                        % SE Algorithm
 sep_options.type = 'spaspec';                   % SEP Algorithm
 se_options.type = 'spaspec';                    % SE Algorithm
 
+
+%========================%
+% Choose Alpha Parameter %
+%========================%
+
+alpha = logspace(-1,2,10);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Perform Kernel Eigenmap Projection Method
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+embedding = cell(size(alpha));
+count = 0;
+
+for ialpha = alpha
+    
+    % use alpha parameter
+    count = count + 1;
+
+
+    %=================================%
+    % Spatial K-NN Graph Construction %
+    %=================================%
+
+    options = [];
+    options.k = 4;
+    options.saved = 0;
+    options.alpha = ialpha;
+
+    % save spatial knn options
+    sep_options.spatial_nn = options;               % SEP Algorithm
+
+    %====================================%
+    % Schroedinger Eigenmap Projections %
+    %====================================%
+
+    tic;
+    projections = SchroedingerEigenmapProjections(imgVec, sep_options);
+    embedding{count} = imgVec * projections;             % project data
+    time.sep = toc;
+    
+    
+    
+end
+
+
+%=========================
+% Classification 
+%===================%
+classOptions = [];
+classOptions.trainPrct = .10;
+classOptions.experiment = 'statsdims';
+classOptions.method = 'svm';
+classOptions.gtVec = gtVec;
+
+statssep = [];
+
+for icount = 1:count
+    
+    [statssep{icount}] = classexperiments(embedding{icount}, classOptions);
+end
+
+% save the statistics for later
+save_path = 'H:\Data\saved_data\alpha_results\indian_pines\sep_';
+save_str = char([ save_path sprintf('alpha_k%d', 20)]);
+save(save_str, 'embedding', 'statssep')
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Perform Kernel Eigenmap Method
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-embedding = [];
-%=====================%
-%% Laplacian Eigenmaps %
-%=====================%
+count = 0;
+embedding = cell(size(alpha));
 
-tic;
-embedding.le = LaplacianEigenmaps(imgVec, le_options);
-time.le = toc;
+for ialpha = alpha
+    
+    % use alpha parameter
+    count = count + 1;
 
-%========================%
-%% Schroedinger Eigenmaps %
-%========================%
 
-tic;
-embedding.se = SchroedingerEigenmaps(imgVec, se_options);
-time.se = toc;
+    %=================================%
+    % Spatial K-NN Graph Construction %
+    %=================================%
 
-%=================================%
-%% Locality Preserving Projections %
-%=================================%
+    options = [];
+    options.k = 4;
+    options.saved = 0;
+    options.alpha = ialpha;
 
-tic;
-projections = LocalityPreservingProjections(imgVec, lpp_options);
-embedding = imgVec * projections;             % project data
-time.lpp = toc;
+    % save spatial knn options
+    se_options.spatial_nn = options;               % SEP Algorithm
 
+    %====================================%
+    % Schroedinger Eigenmap Projections %
+    %====================================%
+
+    tic;
+    embedding{count} = SchroedingerEigenmaps(imgVec, se_options);
+    time.se = toc;
+    
+    
+    
+end
+
+
+%=========================
+%% Classification 
+%===================%
 classOptions = [];
 classOptions.trainPrct = .10;
 classOptions.experiment = 'statsdims';
 classOptions.method = 'svm';
 classOptions.gtVec = gtVec;
-[statslpp] = classexperiments(embedding, classOptions);
+
+statsse = [];
+
+for icount = 1:count
+    
+    [statsse{icount}] = classexperiments(embedding{icount}, classOptions);
+end
 
 %% save the statistics for later
-save_path = 'H:\Data\saved_data\class_results\indian_pines\lpp_';
-save_str = char([ save_path sprintf('k%d', 20)]);
-save(save_str, 'embedding', 'statslpp')
+statsse = statssep;
+save_path = 'H:\Data\saved_data\alpha_results\indian_pines\se_';
+save_str = char([ save_path sprintf('alpha_k%d', 20)]);
+save(save_str, 'embedding', 'statsse')
 
-%===================================%
-%% Schroedinger Eigenmap Projections %
-%===================================%
-
-tic;
-projections = SchroedingerEigenmapProjections(imgVec, sep_options);
-embedding = imgVec * projections;             % project data
-time.sep = toc;
-
-classOptions = [];
-classOptions.trainPrct = .10;
-classOptions.experiment = 'statsdims';
-classOptions.method = 'svm';
-classOptions.gtVec = gtVec;
-[statssep] = classexperiments(embedding, classOptions);
-
-%% save the statistics for later
-save_path = 'H:\Data\saved_data\class_results\indian_pines\sep_';
-save_str = char([ save_path sprintf('k%d', 20)]);
-save(save_str, 'embedding', 'statssep')
+% %========================%
+% %% Schroedinger Eigenmaps %
+% %========================%
+% 
+% tic;
+% embedding.se = SchroedingerEigenmaps(imgVec, se_options);
+% time.se = toc;
+% 
+% classOptions = [];
+% classOptions.trainPrct = .10;
+% classOptions.experiment = 'statsdims';
+% classOptions.method = 'svm';
+% classOptions.gtVec = gtVec;
+% [statssep] = classexperiments(embedding, classOptions);
+% 
+% %% save the statistics for later
+% save_path = 'H:\Data\saved_data\class_results\indian_pines\sep_';
+% save_str = char([ save_path sprintf('k%d', 20)]);
+% save(save_str, 'embedding', 'statssep')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Perform Classification
+%% Plot Results
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
