@@ -135,7 +135,7 @@ switch plotType
            
         end
         hXlabel = xlabel('Embedding Dimensions');
-        hZlabel = zlabel('\kappa');
+        hZlabel = zlabel(labelStat);
         hYlabel = ylabel('Samples');
         
         set([hXlabel, hYlabel, hZlabel, hTitle], 'FontName', 'AvantGarde');
