@@ -98,6 +98,8 @@ if AlignmentOptions.printing == 1
     figure;
     spy(WDissimilarity)
     print('..', '-depsc2')
+    
+    return
 
 end
 

@@ -8,7 +8,7 @@ Data = cell(1,nDomains);            % Initialize Data cell for storage
 for idomain = 1:nDomains
     
     TrainTestOptions = [];
-    TrainTestOptions.trainPrct = options.trainPrct;
+    TrainTestOptions.trainPrct = options.trainPrct{idomain};
     
     % training and testing split
     [XTrain, YTrain, XTest, YTest, IDX] = ...
@@ -26,7 +26,7 @@ for idomain = 1:nDomains
     
     % get labeled and unlabeled data;
     LabeledOptions = [];
-    LabeledOptions.trainPrct = options.labelPrct;
+    LabeledOptions.trainPrct = options.labelPrct{idomain};
     
     [XLabeled, YLabeled, XUnlabeled, YUnlabeled] = ...
         traintestsplit(XTrain, YTrain, LabeledOptions);

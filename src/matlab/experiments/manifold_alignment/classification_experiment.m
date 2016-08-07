@@ -40,8 +40,8 @@ switch lower(dataset)
 end
 
 % Get Data in appropriate form
-Options.trainPrct = .1;
-Options.labelPrct = .1;
+Options.trainPrct = {.1, .1};
+Options.labelPrct = {.1, .1};
 Data = getdataformat(ImageData, Options);
 
 %=================================\

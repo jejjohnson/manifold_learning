@@ -193,64 +193,73 @@ time.sep = toc;
 %% Experiment
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% methods
+classMethods = {'svm', 'lda'};
 % choose samples parameter
 nSamples = .1:.1:.8;
 classOptions = [];
 classOptions.experiment = 'statsdims';
-classOptions.method = 'svm';
 classOptions.gtVec = gtVec;
 
-for iSample = nSamples
-    
-    classOptions.trainPrct = iSample;
-    
-    %=====%
-    % LPP
-    %=====%
 
-    %% save the statistics for later
-    [statslpp] = classexperiments(embedding.lpp, classOptions);
-    save_path = 'H:\Data\saved_data\samples_results\';
-    save_str = char([ save_path sprintf('%s_lpp_%2.f', dataset, iSample*100)]);
-    embeddingSave = embedding.lpp;
-    timeSave = time.lpp;
-    save(save_str, 'embeddingSave', 'statslpp', 'timeSave', 'options')
+for imethod = classMethods
+    classOptions.method = char(imethod);
     
-    %=====%
-    % SEP
-    %=====%
+    for iSample = nSamples
+    
+        classOptions.trainPrct = iSample;
 
-    %% save the statistics for later
-    [statssep] = classexperiments(embedding.sep, classOptions);
-    save_path = 'H:\Data\saved_data\samples_results\';
-    save_str = char([ save_path sprintf('%s_sep_%2.f', dataset, iSample*100)]);
-    embeddingSave = embedding.sep;
-    timeSave = time.sep;
-    save(save_str, 'embeddingSave', 'statssep', 'timeSave', 'options')
-    
-    %=====%
-    % LE
-    %=====%
-    
-    %% save the statistics for later
-    [statsle] = classexperiments(embedding.le, classOptions);
-    save_path = 'H:\Data\saved_data\samples_results\';
-    save_str = char([ save_path sprintf('%s_le_%2.f', dataset, iSample*100)]);
-    embeddingSave = embedding.le;
-    timeSave = time.le;
-    save(save_str, 'embeddingSave', 'statsle', 'timeSave', 'options')
-    %=====%
-    % SE
-    %=====%
+        %=====%
+        % LPP
+        %=====%
 
-    %% save the statistics for later
-    [statsse] = classexperiments(embedding.se, classOptions);
-    save_path = 'H:\Data\saved_data\samples_results\';
-    save_str = char([ save_path sprintf('%s_se_%2.f', dataset, iSample*100)]);
-    embeddingSave = embedding.se;
-    timeSave = time.se;
-    save(save_str, 'embeddingSave', 'statsse', 'timeSave', 'options')
+        
+        [statslpp] = classexperiments(embedding.lpp, classOptions);
+        
+        %% save the statistics for later
+        save_path = 'H:\Data\saved_data\samples_results\';
+        save_str = char([ save_path sprintf('%s_lpp_%s_%2.f', dataset, char(imethod), iSample*100)]);
+        embeddingSave = embedding.lpp;
+        timeSave = time.lpp;
+        save(save_str, 'embeddingSave', 'statslpp', 'timeSave', 'options')
+
+        %=====%
+        % SEP
+        %=====%
+
+        %% save the statistics for later
+        [statssep] = classexperiments(embedding.sep, classOptions);
+        save_path = 'H:\Data\saved_data\samples_results\';
+        save_str = char([ save_path sprintf('%s_sep_%s_%2.f', dataset, char(imethod), iSample*100)]);
+        embeddingSave = embedding.sep;
+        timeSave = time.sep;
+        save(save_str, 'embeddingSave', 'statssep', 'timeSave', 'options')
+
+        %=====%
+        % LE
+        %=====%
+
+        %% save the statistics for later
+        [statsle] = classexperiments(embedding.le, classOptions);
+        save_path = 'H:\Data\saved_data\samples_results\';
+        save_str = char([ save_path sprintf('%s_le_%s_%2.f', dataset, char(imethod), iSample*100)]);
+        embeddingSave = embedding.le;
+        timeSave = time.le;
+        save(save_str, 'embeddingSave', 'statsle', 'timeSave', 'options')
+        %=====%
+        % SE
+        %=====%
+
+        %% save the statistics for later
+        [statsse] = classexperiments(embedding.se, classOptions);
+        save_path = 'H:\Data\saved_data\samples_results\';
+        save_str = char([ save_path sprintf('%s_se_%s_%2.f', dataset, char(imethod), iSample*100)]);
+        embeddingSave = embedding.se;
+        timeSave = time.se;
+        save(save_str, 'embeddingSave', 'statsse', 'timeSave', 'options')
     
+    end
+
 end
 
     

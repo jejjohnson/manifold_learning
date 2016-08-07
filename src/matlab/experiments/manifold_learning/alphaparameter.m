@@ -48,9 +48,9 @@
 % Clear Environment
 clear all; close all; clc;
 
-%============================%
-% Gather Data for experiment %
-%============================%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Gather Data for experiment %
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 dataset = 'pavia';
 
@@ -128,17 +128,6 @@ le_options.embedding = options;                 % LE Algorithm
 sep_options.embedding = options;                % SE Algorithm
 
 
-%==========================%
-% Spatial Spectral Options %
-%==========================%
-
-options = [];
-options.image = img;
-
-% save partial labels options
-sep_options.ss = options;                       % SEP Algorithm
-se_options.ss = options;                        % SE Algorithm
-
 % schroedinger eigenmaps type
 sep_options.type = 'spaspec';                   % SEP Algorithm
 se_options.type = 'spaspec';                    % SE Algorithm
@@ -168,10 +157,22 @@ for ialpha = alpha
     options = [];
     options.k = 4;
     options.saved = 0;
-    options.alpha = ialpha;
+
 
     % save spatial knn options
     sep_options.spatial_nn = options;               % SEP Algorithm
+    
+    
+    %=================================%
+    % Spatial Spectral Options %
+    %=================================%
+    options = [];
+    options.image = img;
+    options.alpha = ialpha;
+
+    % save partial labels options
+    sep_options.ss = options;                       % SEP Algorithm
+    se_options.ss = options;                        % SE Algorithm
 
     %====================================%
     % Schroedinger Eigenmap Projections %
@@ -193,7 +194,7 @@ end
 classOptions = [];
 classOptions.trainPrct = .10;
 classOptions.experiment = 'statsdims';
-classOptions.method = 'svm';
+classOptions.method = 'lda';
 classOptions.gtVec = gtVec;
 
 statssep = [];
@@ -218,8 +219,8 @@ switch lower(dataset)
         error('Unrecognized dataset.');
 end
 
-save_str = char([ save_path sprintf('alpha_k%d', 20)]);
-save(save_str, 'embedding', 'statssep')
+save_str = char([ save_path sprintf('alpha%s_k%d', method, 20)]);
+save(save_str, 'embedding', 'statssep', 'classOptions')
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -233,7 +234,6 @@ for ialpha = alpha
     % use alpha parameter
     count = count + 1;
 
-
     %=================================%
     % Spatial K-NN Graph Construction %
     %=================================%
@@ -241,10 +241,21 @@ for ialpha = alpha
     options = [];
     options.k = 4;
     options.saved = 0;
-    options.alpha = ialpha;
+
 
     % save spatial knn options
-    se_options.spatial_nn = options;               % SEP Algorithm
+    sep_options.spatial_nn = options;               % SEP Algorithm
+    
+    
+    %=================================%
+    % Spatial Spectral Options %
+    %=================================%
+    options = [];
+    options.image = img;
+    options.alpha = ialpha;
+
+    % save partial labels options
+    se_options.ss = options;                        % SE Algorithm
 
     %====================================%
     % Schroedinger Eigenmap Projections %
@@ -260,12 +271,12 @@ end
 
 
 %=========================
-%% Classification 
+% Classification 
 %===================%
 classOptions = [];
 classOptions.trainPrct = .10;
 classOptions.experiment = 'statsdims';
-classOptions.method = 'svm';
+classOptions.method = 'lda';
 classOptions.gtVec = gtVec;
 
 statsse = [];
@@ -275,7 +286,7 @@ for icount = 1:count
     [statsse{icount}] = classexperiments(embedding{icount}, classOptions);
 end
 
-%% save the statistics for later
+% save the statistics for later
 switch lower(dataset)
     case 'indianpines'
         
@@ -290,33 +301,8 @@ switch lower(dataset)
         error('Unrecognized dataset.');
 end
 
-save_str = char([ save_path sprintf('alpha_k%d', 20)]);
-save(save_str, 'embedding', 'statsse')
-
-% %========================%
-% %% Schroedinger Eigenmaps %
-% %========================%
-% 
-% tic;
-% embedding.se = SchroedingerEigenmaps(imgVec, se_options);
-% time.se = toc;
-% 
-% classOptions = [];
-% classOptions.trainPrct = .10;
-% classOptions.experiment = 'statsdims';
-% classOptions.method = 'svm';
-% classOptions.gtVec = gtVec;
-% [statssep] = classexperiments(embedding, classOptions);
-% 
-% %% save the statistics for later
-% save_path = 'H:\Data\saved_data\class_results\indian_pines\sep_';
-% save_str = char([ save_path sprintf('k%d', 20)]);
-% save(save_str, 'embedding', 'statssep')
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Plot Results
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+save_str = char([ save_path sprintf('alpha_%s_k%d', method, 20)]);
+save(save_str, 'embedding', 'statsse', 'classOptions')
 
 
 

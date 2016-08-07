@@ -29,6 +29,7 @@ switch lower(dataset)
 
         % remove path from matlab space
         rmpath('H:\Data\Images\RS\IndianPines\');  
+        
     case 'pavia'
         
         % add specific directory to matlab space
@@ -132,6 +133,8 @@ for iSample = nSamples
     XTrain = XTrain * embedding;        % Training Data
     XTest = XTest * embedding;          % Testing Data
     
+    % get appropriate statistics
+    
     % save data for later
     save_path = 'H:\Data\saved_data\projection_samples\';
     save_str = char([save_path sprintf('%s_lpp_sampl%2.f', dataset, iSample*100)]);
@@ -152,7 +155,7 @@ for iSample = nSamples
 %     save(save_str, 'XTrain', 'XTest', 'YTrain', 'YTest', 'iSample');
     
     count = count + 1;
-    
+    return
 end
     
 

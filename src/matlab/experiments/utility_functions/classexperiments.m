@@ -21,13 +21,13 @@ switch lower(options.experiment)
 %         h = waitbar(0, 'Initializing waitbar...');
         
         % initialize stats holding
-        stats.OAccuracy = []; 
-        stats.AAccuracy = []; 
-        stats.APrecision = []; 
-        stats.ASensitivity = [];
-        stats.ASpecificity = []; 
-        stats.kappa = []; 
-        stats.kappaVariance = [];
+        stats.OA = []; 
+        stats.AA = []; 
+        stats.APr = []; 
+        stats.ASe = [];
+        stats.ASp = []; 
+        stats.k = []; 
+        stats.kv = [];
         
 
         for iDim = testDims
@@ -79,13 +79,13 @@ switch lower(options.experiment)
             
             
             % save the relevant statistics
-            stats.OAccuracy = [stats.OAccuracy; newStats.OA]; 
-            stats.AAccuracy = [stats.AAccuracy; newStats.AA]; 
-            stats.APrecision = [stats.APrecision; newStats.APr]; 
-            stats.ASensitivity = [stats.ASensitivity; newStats.ASe];
-            stats.ASpecificity = [stats.ASpecificity; newStats.ASp]; 
-            stats.kappa = [stats.kappa; newStats.k]; 
-            stats.kappaVariance = [stats.kappaVariance; newStats.v];
+            stats.OA = [stats.OA; newStats.OA]; 
+            stats.AA = [stats.AA; newStats.AA]; 
+            stats.APr = [stats.APr; newStats.APr]; 
+            stats.ASe = [stats.ASe; newStats.ASe];
+            stats.ASp = [stats.ASp; newStats.ASp]; 
+            stats.k = [stats.kappa; newStats.k]; 
+            stats.kv = [stats.kv; newStats.v];
             
         end
         
@@ -112,13 +112,13 @@ switch lower(options.experiment)
 %         h = waitbar(0, 'Initializing waitbar...');
         
         % initialize stats holding
-        stats.OAccuracy = []; 
-        stats.AAccuracy = []; 
-        stats.APrecision = []; 
-        stats.ASensitivity = [];
-        stats.ASpecificity = []; 
-        stats.kappa = []; 
-        stats.kappaVariance = [];
+        stats.OA = []; 
+        stats.AA = []; 
+        stats.APr = []; 
+        stats.ASe = [];
+        stats.ASp = []; 
+        stats.k = []; 
+        stats.kv = [];
         
 
         for iDim = testDims
@@ -170,13 +170,13 @@ switch lower(options.experiment)
             
             
             % save the relevant statistics
-            stats.OAccuracy = [stats.OAccuracy; newStats.OA]; 
-            stats.AAccuracy = [stats.AAccuracy; newStats.AA]; 
-            stats.APrecision = [stats.APrecision; newStats.APr]; 
-            stats.ASensitivity = [stats.ASensitivity; newStats.ASe];
-            stats.ASpecificity = [stats.ASpecificity; newStats.ASp]; 
-            stats.kappa = [stats.kappa; newStats.k]; 
-            stats.kappaVariance = [stats.kappaVariance; newStats.v];
+            stats.OA = [stats.OA; newStats.OA]; 
+            stats.AA = [stats.AA; newStats.AA]; 
+            stats.APr = [stats.APr; newStats.APr]; 
+            stats.ASe = [stats.ASe; newStats.ASe];
+            stats.ASp = [stats.ASp; newStats.ASp]; 
+            stats.k = [stats.kappa; newStats.k]; 
+            stats.kv = [stats.kv; newStats.v];
             
         end
         
