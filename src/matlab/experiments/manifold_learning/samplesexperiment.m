@@ -72,7 +72,7 @@ switch lower(dataset)
         addpath('H:\Data\Images\RS\Pavia\');      % specific to PC
 
         img = importdata('PaviaU.mat');
-        img_gt = importdata('PaviaU_gt.mat');
+        imgGT = importdata('PaviaU_gt.mat');
 
         % remove path from matlab space
         rmpath('H:\Data\Images\RS\Pavia\');  

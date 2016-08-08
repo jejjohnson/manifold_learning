@@ -84,7 +84,7 @@ switch lower(options.experiment)
             stats.APr = [stats.APr; newStats.APr]; 
             stats.ASe = [stats.ASe; newStats.ASe];
             stats.ASp = [stats.ASp; newStats.ASp]; 
-            stats.k = [stats.kappa; newStats.k]; 
+            stats.k = [stats.k; newStats.k]; 
             stats.kv = [stats.kv; newStats.v];
             
         end
@@ -175,7 +175,7 @@ switch lower(options.experiment)
             stats.APr = [stats.APr; newStats.APr]; 
             stats.ASe = [stats.ASe; newStats.ASe];
             stats.ASp = [stats.ASp; newStats.ASp]; 
-            stats.k = [stats.kappa; newStats.k]; 
+            stats.k = [stats.k; newStats.k]; 
             stats.kv = [stats.kv; newStats.v];
             
         end

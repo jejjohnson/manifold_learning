@@ -134,7 +134,7 @@ switch lower(AlignmentOptions.type)
         
         B = Z' * sparse(diag(D)) * Z;
         
-    case 'sssema'
+    case 'sema'
         
         P = [];
         for idomain = 1:numel(Data)

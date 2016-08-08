@@ -71,7 +71,7 @@ switch lower(dataset)
         addpath('H:\Data\Images\RS\Pavia\');      % specific to PC
 
         img = importdata('PaviaU.mat');
-        img_gt = importdata('PaviaU_gt.mat');
+        imgGT = importdata('PaviaU_gt.mat');
 
         % remove path from matlab space
         rmpath('H:\Data\Images\RS\Pavia\');  
@@ -101,9 +101,9 @@ options.k = 20;
 
 switch lower(dataset)
     case 'indianpines'
-        options.saved = 2;
+        options.saved = 0;
     case 'pavia'
-        options.saved = 1;
+        options.saved = 0;
     otherwise
         error('Unrecognized dataset type.');
 end
@@ -118,14 +118,13 @@ se_options.spectral_nn = options;               % SE Algorithm
 %=================================%
 
 options = [];
-options.n_components = 150;
+options.n_components = 100;
 options.constraint = 'degree';
 
 % save eigenvalue decomposition options
 lpp_options.embedding = options;                % LPP Algorithm
 sep_options.embedding = options;                % SEP Algorithm
-le_options.embedding = options;                 % LE Algorithm
-sep_options.embedding = options;                % SE Algorithm
+se_options.embedding = options;
 
 
 % schroedinger eigenmaps type
