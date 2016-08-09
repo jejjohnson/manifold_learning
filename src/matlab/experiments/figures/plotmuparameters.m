@@ -85,11 +85,22 @@ set(gca,...
     'ZLim',         [0 1]);
     
 % Save Results
-save_dest = 'experiments/figures/parameter_est/manifold_alignment/mu/';
+switch plotType
+    case 'pub'
+        save_dest = 'experiments/figures/parameter_est/manifold_alignment/mu/publication/';
+    case 'prez'
+        save_dest = 'experiments/figures/parameter_est/manifold_alignment/mu/presentation/';
+    case 'thesis'
+        save_dest = 'experiments/figures/parameter_est/manifold_alignment/mu/thesis/';
+    otherwise
+        error('invalid plotType input.');
+end
+
 save_file = char(sprintf('mu_%s_domain%d_%s_%s_train%d_case%d_%s_%s', ...
     dataset, domain, algorithm, plotType, trainPrct, iCase, classMethod, lower(plotStat)));
 fn = char([save_dest, save_file]);
 print(fn, '-depsc2');
+savefig(h, char([save_dest, save_file, '.fig']));
 
 % Output parameters
 switch nargout

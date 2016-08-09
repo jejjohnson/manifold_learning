@@ -1,4 +1,4 @@
-function [varargout] = classexperiments(embedding, options)
+function [varargout] = classexperiments(embedding, Options)
 % options input
 %   * nComponents
 %   * trainPrct
@@ -7,7 +7,7 @@ function [varargout] = classexperiments(embedding, options)
 % EXPERIMENT OPTIONS
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-switch lower(options.experiment)
+switch lower(Options.experiment)
     
     case 'statsdims'
         
@@ -15,7 +15,7 @@ switch lower(options.experiment)
         testDims = (1:10:nComponents);
         
         % choose training and testing amount
-        options.trainPrct = 0.10;
+        Options.trainPrct = 0.10;
         rng('default');     % reproducibility
         
 %         h = waitbar(0, 'Initializing waitbar...');
@@ -38,12 +38,12 @@ switch lower(options.experiment)
             
             % training and testing samples
             [XTrain, YTrain, XTest, YTest] = ...
-                traintestsplit(XS, options.gtVec, options);
+                traintestsplit(XS, Options.gtVec, Options);
             
             %========================%
             % CLASSIFICATION OPTIONS %
             %========================%
-            switch lower(options.method)
+            switch lower(Options.method)
 
                 case 'svm'      % Support Vector Machines (SVM)
 
@@ -106,7 +106,7 @@ switch lower(options.experiment)
         testDims = (1:10:nComponents);
         
         % choose training and testing amount
-        options.trainPrct = 0.10;
+        Options.trainPrct = 0.10;
         rng('default');     % reproducibility
         
 %         h = waitbar(0, 'Initializing waitbar...');
@@ -129,12 +129,12 @@ switch lower(options.experiment)
             
             % training and testing samples
             [XTrain, YTrain, XTest, YTest] = ...
-                traintestsplit(XS, options.gtVec, options);
+                traintestsplit(XS, Options.gtVec, Options);
             
             %========================%
             % CLASSIFICATION OPTIONS %
             %========================%
-            switch lower(options.method)
+            switch lower(Options.method)
 
                 case 'svm'      % Support Vector Machines (SVM)
 
@@ -193,76 +193,123 @@ switch lower(options.experiment)
                
     case 'bestresults'
         
-        trainOptions = options.trainPrct;
-        [XTrain, YTrain, XTest, YTest, idx, masks] = traintestsplit(...
-            embedding(:, 1:50),options.gtVec, trainOptions);
+        % get dimensions
+        nDims = Options.nDims;
         
-        % SVM Classification (w/ Image)
-        statoptions.imgVec = embedding(:, 1:50);
-        [~, imgClassMap] = svm_classify(XTrain, YTrain, XTest, ...
-            statoptions);
-        % construct accuracy measures
-        [~, stats] = classmetrics(yTest, yPred);
-        fprintf('\n\t\t\t\t\t\t\tSSSE\n');
-        fprintf('Kappa Coefficient:\t\t\t%6.4f\n',stats.k);
-        fprintf('Overall Accuracy:\t\t\t%6.4f\n',stats.OA);
-        fprintf('Average Accuracy:\t\t\t%6.4f\n',stats.AA);
-        fprintf('Average Precision:\t\t\t%6.4f\n',stats.APr);
-        fprintf('Average Sensitivity:\t\t%6.4f\n',stats.ASe);
-        fprintf('Average Specificity:\t\t%6.4f\n',stats.ASp);
+        % get training and testing
+        trainOptions.trainPrct = Options.trainPrct;
+        [XTrain, YTrain, XTest, YTest] = traintestsplit(...
+            embedding(:, 1:nDims),Options.gtVec, trainOptions);
         
+        % get number of training samples
+        nTraining = zeros(numel(unique(YTrain)),1);
+        nTesting = zeros(numel(unique(YTest)),1);
         
-    case 'classmaps'
-        
-        trainOptions = options.trainPrct;
-        [XTrain, YTrain, XTest, YTest, idx, masks] = traintestsplit(...
-            embedding(:, 1:50),options.gtVec, trainOptions);
-        
-        % SVM Classification (w/ Image)
-        statoptions.imgVec = embedding(:, 1:50);
-        [~, imgClassMap] = svm_classify(XTrain, YTrain, XTest, ...
-            statoptions);
-        
-        % 
-        masks.gt = reshape(masks.gt, ...
-            [size(options.img,1) size(options.img,1)]);
-        
-        % display ground truth and predicted label image
-        labelImg = reshape(imgClassMap, ...
-            size(option.img, 1), size(options.img,1));
-        
-        % plot ground truth image
-        hGT = figure;   
-        imshow(gt, [0 max(options.gt(:))]);
-        
-        % plot ground truth mask
-        hGTMask = figure;
-        imshow(masks.gt); 
-        
-        % Plot predicted class labels
-        hClassLabels = figure;
-        imshow(labelImg,[0 max(options.gt(:))]); 
-        
-        % Class Labels & Ground Truth Pixels
-        hClassLabelsGT = figure;
-        imshow(labelImg.*(masks.gt),[0 max(options.gt(:))]); 
-        
-        switch nargout
-            case 0
-                return;
-            case 1
-                imgFigures.hGT = hGT;
-                imgFigures.hGT = hGTMask;
-                imgFigures.ClassLabels = hClassLabels;
-                imgFigures.hClassLabelsGT = hClassLabelsGT;
-                varagout{1} = imgFigures;
-            otherwise
-                error([mfilename, 'classexperiments:badvarargoutoutput'], ...
-                    'Error: Invalid number of outputs.');
+        for iClass = 1:numel(unique(YTrain))
+            nTraining(iClass) = numel(YTrain(YTrain==iClass)); 
+            nTesting(iClass) = numel(YTest(YTest==iClass));
         end
         
+        % Classification
+        switch lower(Options.method)
+
+            case 'svm'      % Support Vector Machines (SVM)
+
+
+%                     waitbar(iDim/nComponents,h,...
+%                         'Performing SVM classifiaction')
+
+
+                % classifcaiton SVM
+                [YPred] = svmClassify(XTrain, YTrain, XTest);
+
+                [~, Stats, R] = classmetrics(YTest, YPred);
+                Stats.R = R;
+
+            case 'lda'      % Linear Discriminant Analysis (LDA)
+
+%                     waitbar(iDim/nComponents,h,...
+%                         'Performing LDA classifiaction')
+
+                % classification LDA
+                LDAObj = fitcdiscr(XTrain, YTrain);
+
+                % get predictions
+                YPred = predict(LDAObj, XTest);
+
+                % get statistisc
+                [~, Stats, R] = classmetrics(YTest, YPred);
+                Stats.R = R;
+
+            otherwise
+                error([mfilename, ...
+                    'classexperiments:badoptionsmethodinput'],...
+                    'Error: unrecognized classification method.');
+        end
+        
+
+        Stats.nDims = nDims;            % save dimensions
+        Stats.nTraining = nTraining;    % save number of training
+        Stats.nTesting = nTesting;      % save number of testing
         
         
+        switch nargout
+            case 1
+                varargout{1} = Stats;
+            otherwise
+                error('Invalid Number of Outputs.');
+        end
+
+        
+        
+    case 'imagepredictions'
+        
+        % get dimensions
+        nDims = Options.nDims;
+        
+        % get training and testing
+        trainOptions.trainPrct = Options.trainPrct;
+        [XTrain, YTrain, ~, ~] = traintestsplit(...
+            embedding(:, 1:nDims),Options.gtVec, trainOptions);
+        
+        switch lower(Options.method)
+
+            case 'svm'      % Support Vector Machines (SVM)
+
+
+%                     waitbar(iDim/nComponents,h,...
+%                         'Performing SVM classifiaction')
+
+
+                % classifcaiton SVM
+                [YPred] = svmClassify(XTrain, YTrain, embedding(:, 1:nDims));
+
+
+            case 'lda'      % Linear Discriminant Analysis (LDA)
+
+%                     waitbar(iDim/nComponents,h,...
+%                         'Performing LDA classifiaction')
+
+                % classification LDA
+                LDAObj = fitcdiscr(XTrain, YTrain);
+
+                % get predictions
+                YPred = predict(LDAObj, embedding(:, 1:nDims));
+
+
+            otherwise
+                error([mfilename, ...
+                    'classexperiments:badoptionsmethodinput'],...
+                    'Error: unrecognized classification method.');
+        end
+        
+        switch nargout
+            case 1
+                varargout{1} = YPred;
+            otherwise
+                error('Invalid number of outputs.');
+        end
+
         
     otherwise
         error([mfilename, 'classexperiments:badoptionsexperimentinput'],...

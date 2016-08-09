@@ -11,7 +11,7 @@ switch lower(Options.type)
     case 'learning'
         
         % Display Original Image
-        imgColor = originalImage(:,:, Options.ImgColors);
+        imgColor = originalImage(:,:, Options.imgColors);
         iCMin = min(imgColor(:));
         iCMax = max(imgColor(:));
         imgColor = uint8(255*(imgColor -iCMin)./(iCMax - iCMin));
@@ -23,7 +23,7 @@ switch lower(Options.type)
         
         % Display Ground Truth Image
         gtMask = gtImage > 0;
-        nClasses = numel(unique(gtMask>0));
+        nClasses = numel(unique(gtImage));
         gtClasses = uint8(255* ind2rgb(gtImage, hsv(nClasses))) .* ...
             repmat(uint8(gtMask), [1 1 3]) + ...
             255 * repmat(uint8(~gtMask), [1 1 3]);

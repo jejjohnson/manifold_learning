@@ -72,20 +72,97 @@ img = img./scfact;
 imgVec = reshape(img, [numRows*numCols numSpectra]);
 gtVec = reshape(imgGT, [numRows*numCols 1]);
 
+classNames = {'Alfalfa'; 'Corn-notill'; 'Corn'; 'Grass-Pasture'; ...
+    'Grass-Trees'; 'Grass-Pasture-Mowed'; 'Hay-windrowed'; ...
+    'Oats'; 'Soybean-notill'; 'Soybean-mintill'; 'Soybean-clean'; ...
+    'Wheat'; 'Woods'; 'Buildings-Grass-Trees-Drives'; ...
+    'Stone-Steel-Towers'};
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Laplacian Eigenmaps
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %==================================%
 % Spectral K-NN Graph Construction %
 %==================================%
 
 options = [];
 options.type = 'standard';
-options.saved = 1;
+options.saved = 2;
 options.k = 20;
+options.sigma = 1;
 
-% save spectral knn options 
-lpp_options.knn = options;                      % LPP Algorithm
-sep_options.spectral_nn = options;              % SEP Algorithm
-le_options.knn = options;                       % LE Algorithm
-se_options.spectral_nn = options;               % SE Algorithm
+le_options.knn = options;                       % save options
+
+%=================================%
+% Eigenvalue Decompsition Options %
+%=================================%
+
+options = [];
+options.n_components = 50;
+options.constraint = 'degree';
+
+le_options.embedding = options;                 % save options
+
+%=================================%
+% Laplacian Eigenmaps Algorithm %
+%=================================%
+
+tic;
+le.embedding = LaplacianEigenmaps(imgVec, le_options);
+
+
+%=================================%
+% Classification Results
+%=================================%
+
+classOptions = [];
+classOptions.nDims = 50;
+classOptions.trainPrct = .10;
+classOptions.experiment = 'bestresults';
+classOptions.method = 'svm';
+classOptions.gtVec = gtVec;
+[Stats.le] = classexperiments(le.embedding, classOptions);
+
+
+% Get time
+Stats.le.time = toc;
+
+
+%=================================%
+% Classification Plots
+%=================================%
+
+% Image predictions
+classOptions = [];
+classOptions.nDims = 50;
+classOptions.trainPrct = .10;
+classOptions.experiment = 'imagepredictions';
+classOptions.method = 'svm';
+classOptions.gtVec = gtVec;
+imgPred.le = classexperiments(le.embedding, classOptions);
+
+% Classification Plots
+imgPred.le = reshape(imgPred.le, [numRows, numCols, 1]);
+Options = [];
+Options.type = 'learning';
+plotclassmaps(imgPred.le, img, imgGT, Options);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Schroedinger Eigenmaps
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%==================================%
+% Spectral K-NN Graph Construction %
+%==================================%
+
+options = [];
+options.type = 'standard';
+options.saved = 0;
+options.k = 20;
+options.sigma = 1;
+
+se_options.knn = options;                       % save options
 
 %=================================%
 % Spatial K-NN Graph Construction %
@@ -96,22 +173,19 @@ options.k = 4;
 options.saved = 0;
 
 % save spatial knn options
-sep_options.spatial_nn = options;               % SEP Algorithm
 se_options.spatial_nn = options;                % SE Algorithm
+
 
 %=================================%
 % Eigenvalue Decompsition Options %
 %=================================%
 
 options = [];
-options.n_components = 150;
+options.n_components = 50;
 options.constraint = 'degree';
 
 % save eigenvalue decomposition options
-lpp_options.embedding = options;                % LPP Algorithm
-sep_options.embedding = options;                % SEP Algorithm
-le_options.embedding = options;                 % LE Algorithm
-sep_options.embedding = options;                % SE Algorithm
+se_options.embedding = options;                % LPP Algorithm
 
 
 %==========================%
@@ -122,83 +196,251 @@ options = [];
 options.image = img;
 
 % save partial labels options
-sep_options.ss = options;                       % SEP Algorithm
 se_options.ss = options;                        % SE Algorithm
 
 % schroedinger eigenmaps type
-sep_options.type = 'spaspec';                   % SEP Algorithm
 se_options.type = 'spaspec';                    % SE Algorithm
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Perform Kernel Eigenmap Method
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-embedding = [];
-%=====================%
-%% Laplacian Eigenmaps %
-%=====================%
-
-tic;
-embedding.le = LaplacianEigenmaps(imgVec, le_options);
-time.le = toc;
-
 %========================%
-%% Schroedinger Eigenmaps %
+% Schroedinger Eigenmaps %
 %========================%
 
+
 tic;
-embedding.se = SchroedingerEigenmaps(imgVec, se_options);
-time.se = toc;
+se.embedding = SchroedingerEigenmaps(imgVec, se_options);
+
 
 %=================================%
-%% Locality Preserving Projections %
+% Classification Results
+%=================================%
+
+classOptions = [];
+classOptions.nDims = 50;
+classOptions.trainPrct = .10;
+classOptions.experiment = 'bestresults';
+classOptions.method = 'svm';
+classOptions.gtVec = gtVec;
+[Stats.se] = classexperiments(se.embedding, classOptions);
+
+
+% Get time
+Stats.se.time = toc;
+
+
+%=================================%
+% Classification Plots
+%=================================%
+
+% Image predictions
+classOptions = [];
+classOptions.nDims = 50;
+classOptions.trainPrct = .10;
+classOptions.experiment = 'imagepredictions';
+classOptions.method = 'svm';
+classOptions.gtVec = gtVec;
+imgPred.se = classexperiments(se.embedding, classOptions);
+
+% Classification Plots
+imgPred.se = reshape(imgPred.se, [numRows, numCols, 1]);
+Options = [];
+Options.type = 'learning';
+plotclassmaps(imgPred.se, img, imgGT, Options);
+%% Locality Preserving Projections
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%==================================%
+% Spectral K-NN Graph Construction %
+%==================================%
+
+options = [];
+options.type = 'standard';
+options.saved = 0;
+options.k = 20;
+options.sigma = 1;
+
+lpp_options.knn = options;                       % save options
+
+%=================================%
+% Eigenvalue Decompsition Options %
+%=================================%
+
+options = [];
+options.n_components = 50;
+options.constraint = 'degree';
+
+lpp_options.embedding = options;                 % save options
+
+%=================================%
+% Laplacian Eigenmaps Algorithm %
 %=================================%
 
 tic;
-projections = LocalityPreservingProjections(imgVec, lpp_options);
-embedding = imgVec * projections;             % project data
-time.lpp = toc;
+lpp.embedding = LocalityPreservingProjections(imgVec, lpp_options);
+lpp.embedding = imgVec * lpp.embedding;
+
+
+%=================================%
+% Classification Results
+%=================================%
 
 classOptions = [];
+classOptions.nDims = 50;
 classOptions.trainPrct = .10;
-classOptions.experiment = 'statsdims';
+classOptions.experiment = 'bestresults';
 classOptions.method = 'svm';
 classOptions.gtVec = gtVec;
-[statslpp] = classexperiments(embedding, classOptions);
+[Stats.lpp] = classexperiments(lpp.embedding, classOptions);
 
-%% save the statistics for later
-save_path = 'H:\Data\saved_data\class_results\indian_pines\lpp_';
-save_str = char([ save_path sprintf('k%d', 20)]);
-save(save_str, 'embedding', 'statslpp')
 
-%===================================%
-%% Schroedinger Eigenmap Projections %
-%===================================%
+% Get time
+Stats.lpp.time = toc;
+
+%=================================%
+% Classification Plots
+%=================================%
+
+% Image predictions
+classOptions = [];
+classOptions.nDims = 50;
+classOptions.trainPrct = .10;
+classOptions.experiment = 'imagepredictions';
+classOptions.method = 'svm';
+classOptions.gtVec = gtVec;
+imgPred.lpp = classexperiments(lpp.embedding, classOptions);
+
+% Classification Plots
+imgPred.lpp = reshape(imgPred.lpp, [numRows, numCols, 1]);
+Options = [];
+Options.type = 'learning';
+plotclassmaps(imgPred.lpp, img, imgGT, Options);
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Schroedinger Eigenmap Projections 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%==================================%
+% Spectral K-NN Graph Construction %
+%==================================%
+
+options = [];
+options.type = 'standard';
+options.saved = 0;
+options.k = 20;
+options.sigma = 1;
+
+sep_options.knn = options;                       % save options
+
+%=================================%
+% Spatial K-NN Graph Construction %
+%=================================%
+
+options = [];
+options.k = 4;
+options.saved = 0;
+
+% save spatial knn options
+sep_options.spatial_nn = options;                % sep Algorithm
+
+
+%=================================%
+% Eigenvalue Decompsition Options %
+%=================================%
+
+options = [];
+options.n_components = 50;
+options.constraint = 'degree';
+
+% save eigenvalue decomposition options
+sep_options.embedding = options;                % LPP Algorithm
+
+
+%==========================%
+% Spatial Spectral Options %
+%==========================%
+
+options = [];
+options.image = img;
+
+% save partial labels options
+sep_options.ss = options;                        % sep Algorithm
+
+% schroedinger eigenmaps type
+sep_options.type = 'spaspec';                    % sep Algorithm
+
+%========================%
+% Schroedinger Eigenmaps %
+%========================%
+
 
 tic;
-projections = SchroedingerEigenmapProjections(imgVec, sep_options);
-embedding = imgVec * projections;             % project data
-time.sep = toc;
+sep.embedding = SchroedingerEigenmapProjections(imgVec, sep_options);
+sep.embedding = imgVec * sep.embedding;
+
+%=================================%
+% Classification Results
+%=================================%
 
 classOptions = [];
+classOptions.nDims = 50;
 classOptions.trainPrct = .10;
-classOptions.experiment = 'statsdims';
+classOptions.experiment = 'bestresults';
 classOptions.method = 'svm';
 classOptions.gtVec = gtVec;
-[statssep] = classexperiments(embedding, classOptions);
-
-%% save the statistics for later
-save_path = 'H:\Data\saved_data\class_results\indian_pines\sep_';
-save_str = char([ save_path sprintf('k%d', 20)]);
-save(save_str, 'embedding', 'statssep')
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Plot Results
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+[Stats.sep] = classexperiments(sep.embedding, classOptions);
 
 
+% Get time
+Stats.sep.time = toc;
+
+
+%=================================%
+% Classification Plots
+%=================================%
+
+% Image predictions
+classOptions = [];
+classOptions.nDims = 50;
+classOptions.trainPrct = .10;
+classOptions.experiment = 'imagepredictions';
+classOptions.method = 'svm';
+classOptions.gtVec = gtVec;
+imgPred.sep = classexperiments(sep.embedding, classOptions);
+
+% Classification Plots
+imgPred.sep = reshape(imgPred.sep, [numRows, numCols, 1]);
+Options = [];
+Options.type = 'learning';
+plotclassmaps(imgPred.sep, img, imgGT, Options);
 
 
 
+% classNames = {'Trees'; 'Asphalt'; 'Bitumen'; 'Gravel'; ...
+%     'Metal Sheets'; 'Shadow'; 'Bricks'; 'Meadows'; 'Bare Soil'};
+%% Best Results
+
+classNames = {...
+    'Alfalfa                        '; ...
+    'Corn-notill                    '; ...
+    'Corn-mintill                   '; ...
+    'Corn                           '; ...
+    'Grass-Pasture                  '; ...
+    'Grass-Trees                    '; ...
+    'Grass-Pasture-Mowed            '; ...
+    'Hay-windrowed                  '; ...
+    'Oats                           '; ...
+    'Soybean-notill                 '; ...
+    'Soybean-mintill                '; ...
+    'Soybean-clean                  '; ...
+    'Wheat                          '; ...
+    'Woods                          '; ...
+    'Buildings-Grass-Trees-Drives   '; ...
+    'Stone-Steel-Towers             '};
+Stats.classNames = classNames;
+
+Options = [];
+Options.exp = 'manifold';
+bestclassresults(Stats, Options);
 
 
 
