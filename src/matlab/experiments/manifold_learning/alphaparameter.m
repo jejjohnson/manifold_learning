@@ -218,7 +218,7 @@ switch lower(dataset)
         error('Unrecognized dataset.');
 end
 
-save_str = char([ save_path sprintf('alpha%s_k%d', method, 20)]);
+save_str = char([ save_path sprintf('alpha%s_k%d', classOptions.method, 20)]);
 save(save_str, 'embedding', 'statssep', 'classOptions')
 
 
@@ -300,7 +300,7 @@ switch lower(dataset)
         error('Unrecognized dataset.');
 end
 
-save_str = char([ save_path sprintf('alpha_%s_k%d', method, 20)]);
+save_str = char([ save_path sprintf('alpha_%s_k%d', classOptions.method, 20)]);
 save(save_str, 'embedding', 'statsse', 'classOptions')
 
 
