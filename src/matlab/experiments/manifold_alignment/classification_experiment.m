@@ -5,7 +5,8 @@
 clear all; close all; clc;
 
 % dataset
-dataset = 'vcu';
+dataset = 'lidar';
+img2 = 2;
 
 switch lower(dataset)
     
@@ -35,14 +36,170 @@ switch lower(dataset)
             [ImageData{iImage}.gtVec, ImageData{iImage}.gtdims] = imgtoarray(ImageData{iImage}.gt);
         end
         
+        % Get Data in appropriate form
+        Options.trainPrct = {.1, .1};
+        Options.labelPrct = {.1, .1};
+        Data = getdataformat(ImageData, Options);
+        
+    case 'lidar'
+        
+        try 
+            display('Trying to load in previous data..');
+            x
+            load H:\Data\Images\RS\lidar_hsi\Main\Data.mat
+        catch
+            display('Failed...');
+            display('No file found.');
+            display('Loading in data manually. May take a while...');
+            
+            
+            filePath = 'H:\Data\Images\RS\lidar_hsi\Main\';
+
+            ImageData = [];             % intialize image data structure
+            Image1= imread([filePath, 'Eagle.tif']);
+            Image2 = imread([filePath, 'lidar_intensity.tif']);
+            Image3 = imread([filePath, 'lidar_dsm.tif']);
+
+
+            load H:\Data\Images\RS\lidar_hsi\Main\test
+            load H:\Data\Images\RS\lidar_hsi\Main\train
+
+            imgGT = train(:,:,1) + test(:, :, 1);
+            % change type
+            Image1 = double(Image1);
+            Image2 = double(Image2);
+            Image3 = double(Image3);
+            display('Done!')
+
+            % Normalize the images
+            Image1 = normalizeimage(Image1);
+            Image2 = normalizeimage(Image2);
+            Image3 = normalizeimage(Image3);
+
+            % Save the data
+            save H:\Data\Images\RS\lidar_hsi\Main\image1.mat Image1 -v7.3
+            save H:\Data\Images\RS\lidar_hsi\Main\image2.mat Image2 -v7.3
+            save H:\Data\Images\RS\lidar_hsi\Main\image3.mat Image3 -v7.3
+            save H:\Data\Images\RS\lidar_hsi\Main\imggt.mat imgGT -v7.3
+            
+            display('Done!')
+            display('Clearing work space.')
+            
+            clear; close all; clc;
+            
+            display('Loading in data');
+            
+            Image1= load('H:\Data\Images\RS\lidar_hsi\Main\image1.mat');
+            
+            switch img2
+                case 1
+                    Image2 = load('H:\Data\Images\RS\lidar_hsi\Main\image2.mat');
+                case 2
+                    Image3 = load('H:\Data\Images\RS\lidar_hsi\Main\image3.mat');
+                    Image2 = Image3;
+                    clear Image3;
+                otherwise
+                    error('Unrecgonized image 2');
+            end
+            
+            ImageGT= matfile('H:\Data\Images\RS\lidar_hsi\Main\imggt.mat');
+            
+            
+            % Tune data
+            ImageData = [];
+            ImageData{1}.img = Image1;             % 400m image
+            clear Image1;
+            ImageData{2}.img = Image2;             % 2000m image
+            clear Image2;
+
+            ImageData{1}.gt = ImageGT;      % 400m image ground truth
+            ImageData{2}.gt = ImageGT;      % 2000m image ground truth
+            clear ImageGT;
+
+
+            % Image preprocessing
+            for iImage = 1:numel(ImageData)
+
+                % image preprocessing
+                ImageData{iImage}.img = normalizeimage(ImageData{iImage}.img ); 
+
+                % convert image to array
+                [ImageData{iImage}.imgVec, ImageData{iImage}.dims] = imgtoarray(ImageData{iImage}.img);
+
+                % convert ground truth to array
+                [ImageData{iImage}.gtVec, ImageData{iImage}.gtdims] = imgtoarray(ImageData{iImage}.gt);
+            end
+            
+            % Get Data in appropriate form
+            Options.trainPrct = {.3, .3};
+            Options.labelPrct = {.1, .1};
+            Data = getdataformat(ImageData, Options);
+            clear ImageData;
+            
+            
+        end
+            
+          
+        
+        
     otherwise
         error('Unrecognized dataset chosen.');
 end
 
+
+
+return;
+
+%% Load Data
+clear all; close all; clc;
+
+
+display('Loading in data');
+
+
+
+
+
+% Tune data
+ImageData = [];
+
+load('H:\Data\Images\RS\lidar_hsi\Main\image1.mat');
+ImageData{1}.img = Image1(:,:,1:247);             % 400m image
+clear Image1;
+
+load('H:\Data\Images\RS\lidar_hsi\Main\image3.mat');
+ImageData{2}.img = Image3;             % 2000m image
+clear Image2;
+
+load('H:\Data\Images\RS\lidar_hsi\Main\imggt.mat');
+ImageData{1}.gt = imgGT;      % 400m image ground truth
+ImageData{2}.gt = imgGT;      % 2000m image ground truth
+clear imgGT;
+
+
+% Image preprocessing
+for iImage = 1:numel(ImageData)
+
+    % image preprocessing
+    ImageData{iImage}.img = normalizeimage(ImageData{iImage}.img); 
+
+    % convert image to array
+    [ImageData{iImage}.imgVec, ImageData{iImage}.dims] = imgtoarray(ImageData{iImage}.img);
+
+    % convert ground truth to array
+    [ImageData{iImage}.gtVec, ImageData{iImage}.gtdims] = imgtoarray(ImageData{iImage}.gt);
+end
+
 % Get Data in appropriate form
-Options.trainPrct = {.1, .1};
-Options.labelPrct = {.1, .1};
+Options.trainPrct = {.3, .3};
+Options.labelPrct = {.2, .2};
 Data = getdataformat(ImageData, Options);
+
+
+return;
+
+% Get rid of some bands
+
 
 %=================================\
 %% Manifold Alignment
@@ -85,8 +242,8 @@ Options.PotentialOptions = PotentialOptions;
 
 % manifold alignment options
 AlignmentOptions = [];
-AlignmentOptions.type = 'ssma'; %'ssma';
-AlignmentOptions.nComponents = 'default';
+AlignmentOptions.type = 'sema'; %'ssma';
+AlignmentOptions.nComponents = 247;
 AlignmentOptions.printing = 0;
 AlignmentOptions.lambda = 0;
 AlignmentOptions.mu = .2;
@@ -100,13 +257,14 @@ projectionFunctions = manifoldalignment(Data, Options);
 
 %% Projection Functions
 
-embedding = manifoldprojections(Data, projectionFunctions, 'ssma');
+embedding = manifoldalignmentprojections(Data, projectionFunctions, 'sema');
 
 
 %% Classification
 ClassOptions = [];
 ClassOptions.method = 'lda';
 ClassOptions.dimStep = 4;
+ClassOptions.nComponents = 100;
 
 stats = alignmentclassification(Data, embedding, ClassOptions);
 

@@ -175,6 +175,8 @@ end
 if ~isfield(AlignmentOptions, 'nComponents') || ...
         isequal(AlignmentOptions.nComponents, 'default')
     nComponents = dDomainsTotal;
+else 
+    nComponents = AlignmentOptions.nComponents;
 end
 
 warning('off')

@@ -7,36 +7,45 @@ Data = cell(1,nDomains);            % Initialize Data cell for storage
 
 for idomain = 1:nDomains
     
-    TrainTestOptions = [];
-    TrainTestOptions.trainPrct = options.trainPrct{idomain};
     
-    % training and testing split
-    [XTrain, YTrain, XTest, YTest, IDX] = ...
+    
+    % get labeled and unlabeled data;
+    LabeledOptions = [];
+    LabeledOptions.trainPrct = options.labelPrct{idomain};
+    
+    [XLabeled, YLabeled, XTest, YTest, IDX] = ...
         traintestsplit(...
         ImageData{idomain}.imgVec, ...
         ImageData{idomain}.gtVec, ...
-        TrainTestOptions);
+        LabeledOptions);
     
     % get spatial locations of matrix
     [x, y] = meshgrid(1:ImageData{idomain}.dims.numCols, ...
         1:ImageData{idomain}.dims.numRows);
     pData = [x(:) y(:)];
 
-    pData = pData(IDX.train, :);
+    pDataLabel = pData(IDX.train, :);
     
-    % get labeled and unlabeled data;
-    LabeledOptions = [];
-    LabeledOptions.trainPrct = options.labelPrct{idomain};
+    % get unlabeled training and unlabeled testing
+    TrainTestOptions = [];
+    TrainTestOptions.trainPrct = options.trainPrct{idomain};
     
-    [XLabeled, YLabeled, XUnlabeled, YUnlabeled] = ...
-        traintestsplit(XTrain, YTrain, LabeledOptions);
+    [XUnlabeled, YUnlabeled, ~, ~, IDX] = ...
+        traintestsplit(XTest, YTest, TrainTestOptions);
+    
+    
+    pDataUnlabel = pData(IDX.train, :);
+    
+    pData = [pDataLabel; pDataUnlabel];
+    
+    
     
     % save data in appropriate format
     Data{idomain} = [];
     
-    Data{idomain}.XTrain = XTrain;
+    Data{idomain}.XTrain = XLabeled;
     Data{idomain}.XTest = XTest;
-    Data{idomain}.YTrain = YTrain;
+    Data{idomain}.YTrain = YLabeled;
     Data{idomain}.YTest = YTest;
     Data{idomain}.X.labeled = XLabeled;
     Data{idomain}.X.unlabeled = XUnlabeled;

@@ -2,6 +2,7 @@ function stats = alignmentclassification(Data, embedding, Options)
 
 % get the number of components and test dimensions
 nDomains = numel(Data);
+nComponents = Options.nComponents;
 
 % initialize domain for stats
 stats = cell(1,nDomains);
@@ -43,6 +44,7 @@ for idomain = 1:nDomains
     % Loop through dimensions
     for iDim = 1:dimStep:testDims
         % number of dimensions
+        
         XS = XTrain(:, 1:iDim);
         XTest = embedding{idomain}.test(:, 1:iDim);
         YTest = Data{idomain}.YTest;

@@ -38,11 +38,13 @@ startPoint = 1; endPoint = Domains{1};
 for idomain = 1:numel(Data)
     
     % grab appropriate size dimensions
-    domainProjections{idomain} = projections(:, startPoint:endPoint);
     
+    
+    domainProjections{idomain} = projections(startPoint:endPoint, :);
+
     % project training and testing data
-    embedding{idomain}.train = Data{idomain}.X.labeled * domainProjections{idomain}';
-    embedding{idomain}.test = Data{idomain}.XTest * domainProjections{idomain}';
+    embedding{idomain}.train = Data{idomain}.X.labeled * domainProjections{idomain};
+    embedding{idomain}.test = Data{idomain}.XTest * domainProjections{idomain};
     
     % normalize the data if ssma method
     switch type

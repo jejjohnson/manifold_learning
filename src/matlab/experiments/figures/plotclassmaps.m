@@ -8,6 +8,30 @@ end
 
 switch lower(Options.type)
     
+    case 'initial'
+        
+        % Display Original Image
+        imgColor = originalImage(:,:, Options.imgColors);
+        iCMin = min(imgColor(:));
+        iCMax = max(imgColor(:));
+        imgColor = uint8(255*(imgColor -iCMin)./(iCMax - iCMin));
+        imgColorPad = padarray(imgColor, [1 1], 0);
+        
+        hOriginalImage = figure;
+        
+        himg = imshow(imgColorPad);
+        
+        % Display Ground Truth Image
+        gtMask = gtImage > 0;
+        nClasses = numel(unique(gtImage));
+        gtClasses = uint8(255* ind2rgb(gtImage, hsv(nClasses))) .* ...
+            repmat(uint8(gtMask), [1 1 3]) + ...
+            255 * repmat(uint8(~gtMask), [1 1 3]);
+        gtClassesPad = padarray(gtClasses, [1 1 0]);
+        
+        hgtImage = figure;
+        hgt = imshow(gtClassesPad);
+    
     case 'learning'
         
         % Display Original Image
