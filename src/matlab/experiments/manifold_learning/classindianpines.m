@@ -72,6 +72,7 @@ img = img./scfact;
 imgVec = reshape(img, [numRows*numCols numSpectra]);
 gtVec = reshape(imgGT, [numRows*numCols 1]);
 
+%%
 classNames = {'Alfalfa'; 'Corn-notill'; 'Corn'; 'Grass-Pasture'; ...
     'Grass-Trees'; 'Grass-Pasture-Mowed'; 'Hay-windrowed'; ...
     'Oats'; 'Soybean-notill'; 'Soybean-mintill'; 'Soybean-clean'; ...
@@ -88,7 +89,7 @@ classNames = {'Alfalfa'; 'Corn-notill'; 'Corn'; 'Grass-Pasture'; ...
 
 options = [];
 options.type = 'standard';
-options.saved = 2;
+options.saved = 0;
 options.k = 20;
 options.sigma = 1;
 
@@ -146,6 +147,8 @@ imgPred.le = classexperiments(le.embedding, classOptions);
 imgPred.le = reshape(imgPred.le, [numRows, numCols, 1]);
 Options = [];
 Options.type = 'learning';
+Options.hsi = 'indianpines';
+Options.algo = 'le';
 plotclassmaps(imgPred.le, img, imgGT, Options);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -244,6 +247,8 @@ imgPred.se = classexperiments(se.embedding, classOptions);
 imgPred.se = reshape(imgPred.se, [numRows, numCols, 1]);
 Options = [];
 Options.type = 'learning';
+Options.hsi = 'indianpines';
+Options.algo = 'se';
 plotclassmaps(imgPred.se, img, imgGT, Options);
 %% Locality Preserving Projections
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -312,6 +317,8 @@ imgPred.lpp = classexperiments(lpp.embedding, classOptions);
 imgPred.lpp = reshape(imgPred.lpp, [numRows, numCols, 1]);
 Options = [];
 Options.type = 'learning';
+Options.hsi = 'indianpines';
+Options.algo = 'lpp';
 plotclassmaps(imgPred.lpp, img, imgGT, Options);
 
 
@@ -411,6 +418,8 @@ imgPred.sep = classexperiments(sep.embedding, classOptions);
 imgPred.sep = reshape(imgPred.sep, [numRows, numCols, 1]);
 Options = [];
 Options.type = 'learning';
+Options.hsi = 'indianpines';
+Options.algo = 'sep';
 plotclassmaps(imgPred.sep, img, imgGT, Options);
 
 
