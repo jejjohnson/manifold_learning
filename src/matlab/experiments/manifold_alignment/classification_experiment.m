@@ -5,8 +5,9 @@
 clear all; close all; clc;
 
 % dataset
-dataset = 'lidar';
+dataset = 'vcu';
 img2 = 2;
+algo = 'ssma';
 
 switch lower(dataset)
     
@@ -136,6 +137,22 @@ switch lower(dataset)
             Data = getdataformat(ImageData, Options);
             clear ImageData;
             
+            % Tune data
+            ImageData = [];
+
+            load('H:\Data\Images\RS\lidar_hsi\Main\image1.mat');
+            ImageData{1}.img = Image1(:,:,1:247);             % 400m image
+            clear Image1;
+
+            load('H:\Data\Images\RS\lidar_hsi\Main\image3.mat');
+            ImageData{2}.img = Image3;             % 2000m image
+            clear Image2;
+
+            load('H:\Data\Images\RS\lidar_hsi\Main\imggt.mat');
+            ImageData{1}.gt = imgGT;      % 400m image ground truth
+            ImageData{2}.gt = imgGT;      % 2000m image ground truth
+            clear imgGT;
+            
             
         end
             
@@ -144,61 +161,11 @@ switch lower(dataset)
         
     otherwise
         error('Unrecognized dataset chosen.');
+        
 end
 
 
 
-return;
-
-%% Load Data
-clear all; close all; clc;
-
-
-display('Loading in data');
-
-
-
-
-
-% Tune data
-ImageData = [];
-
-load('H:\Data\Images\RS\lidar_hsi\Main\image1.mat');
-ImageData{1}.img = Image1(:,:,1:247);             % 400m image
-clear Image1;
-
-load('H:\Data\Images\RS\lidar_hsi\Main\image3.mat');
-ImageData{2}.img = Image3;             % 2000m image
-clear Image2;
-
-load('H:\Data\Images\RS\lidar_hsi\Main\imggt.mat');
-ImageData{1}.gt = imgGT;      % 400m image ground truth
-ImageData{2}.gt = imgGT;      % 2000m image ground truth
-clear imgGT;
-
-
-% Image preprocessing
-for iImage = 1:numel(ImageData)
-
-    % image preprocessing
-    ImageData{iImage}.img = normalizeimage(ImageData{iImage}.img); 
-
-    % convert image to array
-    [ImageData{iImage}.imgVec, ImageData{iImage}.dims] = imgtoarray(ImageData{iImage}.img);
-
-    % convert ground truth to array
-    [ImageData{iImage}.gtVec, ImageData{iImage}.gtdims] = imgtoarray(ImageData{iImage}.gt);
-end
-
-% Get Data in appropriate form
-Options.trainPrct = {.3, .3};
-Options.labelPrct = {.2, .2};
-Data = getdataformat(ImageData, Options);
-
-
-return;
-
-% Get rid of some bands
 
 
 %=================================\
@@ -240,10 +207,43 @@ PotentialOptions.SpatialAdjacency = SpatialAdjacency;
 % save potential options
 Options.PotentialOptions = PotentialOptions;
 
+
+%% SSMA
 % manifold alignment options
 AlignmentOptions = [];
-AlignmentOptions.type = 'sema'; %'ssma';
-AlignmentOptions.nComponents = 247;
+AlignmentOptions.type = 'ssma';
+AlignmentOptions.nComponents = 'default';
+AlignmentOptions.printing = 0;
+AlignmentOptions.lambda = 0;
+AlignmentOptions.mu = .2;
+AlignmentOptions.alpha = .2;
+
+% save Alignment options
+Options.AlignmentOptions = AlignmentOptions;
+
+tic;
+% Manifold Alignment
+projectionFunctions = manifoldalignment(Data, Options);
+
+% Projection Functions
+
+embedding.ssma = manifoldalignmentprojections(Data, projectionFunctions, 'ssma');
+
+% Classification
+ClassOptions = [];
+ClassOptions.method = 'lda';
+ClassOptions.dimStep = 4;
+ClassOptions.nComponents = 10;
+ClassOptions.exp = 'best';
+
+stats.ssma = alignmentclassification(Data, embedding.ssma, ClassOptions);
+stats.ssma{1,1}.time = toc;
+
+%% Wang
+% manifold alignment options
+AlignmentOptions = [];
+AlignmentOptions.type = 'wang';
+AlignmentOptions.nComponents = 'default';
 AlignmentOptions.printing = 0;
 AlignmentOptions.lambda = 0;
 AlignmentOptions.mu = .2;
@@ -253,25 +253,64 @@ AlignmentOptions.alpha = .2;
 Options.AlignmentOptions = AlignmentOptions;
 
 % Manifold Alignment
+tic;
 projectionFunctions = manifoldalignment(Data, Options);
 
-%% Projection Functions
+% Projection Functions
 
-embedding = manifoldalignmentprojections(Data, projectionFunctions, 'sema');
+embedding.wang = manifoldalignmentprojections(Data, projectionFunctions, 'wang');
 
 
-%% Classification
+% Classification
 ClassOptions = [];
 ClassOptions.method = 'lda';
 ClassOptions.dimStep = 4;
-ClassOptions.nComponents = 100;
+ClassOptions.nComponents = 10;
+ClassOptions.exp = 'best';
 
-stats = alignmentclassification(Data, embedding, ClassOptions);
+stats.wang = alignmentclassification(Data, embedding.wang, ClassOptions);
+stats.wang{1,1}.time = toc;
+
+%% SEMA
+% manifold alignment options
+AlignmentOptions = [];
+AlignmentOptions.type = 'sema';
+AlignmentOptions.nComponents = 'default';
+AlignmentOptions.printing = 0;
+AlignmentOptions.lambda = 0;
+AlignmentOptions.mu = .2;
+AlignmentOptions.alpha = .2;
+
+% save Alignment options
+Options.AlignmentOptions = AlignmentOptions;
+
+% Manifold Alignment
+tic;
+projectionFunctions = manifoldalignment(Data, Options);
+
+% Projection Functions
+
+embedding.sema = manifoldalignmentprojections(Data, projectionFunctions, 'sema');
 
 
+% Classification
+ClassOptions = [];
+ClassOptions.method = 'lda';
+ClassOptions.dimStep = 4;
+ClassOptions.nComponents = 10;
+ClassOptions.exp = 'best';
+
+stats.sema = alignmentclassification(Data, embedding.sema, ClassOptions);
+stats.sema{1,1}.time = toc;
+
+%% Plots
+TableOptions = [];
+TableOptions.exp = 'alignment';
 
 
-
+classNames = {'1', '2', '3', '4', '5', '6', '7'};
+stats.classNames = classNames;
+bestclassresults(stats, TableOptions)
 
 
     

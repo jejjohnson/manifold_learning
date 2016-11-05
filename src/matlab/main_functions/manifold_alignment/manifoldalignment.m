@@ -68,19 +68,24 @@ WSimilarity(YBlock == 0, :) = 0;
 WSimilarity(:, YBlock == 0) = 0;
 WSimilarity = double(WSimilarity);
 
+
 % Dissimilarity 
-WDissimilarity = sparse(repmat(YBlock, 1, length(YBlock))==...
+WDissimilarity = sparse(repmat(YBlock, 1, length(YBlock))~=...
     repmat(YBlock, 1, length(YBlock))');
 WDissimilarity(YBlock == 0, :) = 0;
 WDissimilarity(:, YBlock == 0) = 0;
 WDissimilarity = double(WDissimilarity);
 
-% SSMA Voodoo
-if isequal(Options.AlignmentOptions.type, 'ssma')
+switch AlignmentOptions.type
+    case 'ssma'
+    WDissimilarity = WDissimilarity + eye(size(WDissimilarity,1));
+    WSimilarity = WSimilarity + eye(size(WSimilarity,1));
+
+    % SSMA Voodoo
     Sws = sum(sum(WSimilarity));
     Sw = sum(sum(W));
     WSimilarity = WSimilarity/Sws * Sw;
-    
+
     Swd = sum(sum(WDissimilarity));
     WDissimilarity = WDissimilarity/Swd * Sw;
 end
@@ -89,17 +94,21 @@ end
 if AlignmentOptions.printing == 1
     figure;
     spy(W)
-    print('..', '-depsc2')
+%     print('..', '-depsc2')
     
     figure;
     spy(WSimilarity)
-    print('..', '-depsc2')
+%     print('..', '-depsc2')
     
     figure;
     spy(WDissimilarity)
-    print('..', '-depsc2')
+%     print('..', '-depsc2')
+
+    figure;
+    spy(WDissimilarity - WSimilarity);
     
-    return
+    
+
 
 end
 
@@ -110,6 +119,21 @@ LSimilarity = diag(DSimilarity)-WSimilarity;
 
 D = sum(W,2);
 L = diag(D) - W;
+
+
+if AlignmentOptions.printing == 1
+    figure;
+    spy(sparse(diag(D)))
+%     print('..', '-depsc2')
+    
+    figure;
+    spy(L)
+%     print('..', '-depsc2')
+    
+    
+    return
+
+end
 
 DDissimilarity = sum(WDissimilarity, 2);
 LDissimilarity = diag(DDissimilarity) - WDissimilarity;
@@ -156,8 +180,9 @@ switch lower(AlignmentOptions.type)
 
         end
         
-         A  = (L + AlignmentOptions.alpha * P) + AlignmentOptions.mu * LSimilarity + ...
-            AlignmentOptions.lambda * eye(size(L));
+         A  = (1-AlignmentOptions.mu) * (L + AlignmentOptions.alpha * P) + ...
+             AlignmentOptions.mu * LSimilarity + ...
+             AlignmentOptions.lambda * eye(size(L));
         
         A = Z' * A * Z;
         

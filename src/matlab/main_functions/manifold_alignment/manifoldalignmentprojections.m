@@ -40,25 +40,25 @@ for idomain = 1:numel(Data)
     % grab appropriate size dimensions
     
     
-    domainProjections{idomain} = projections(startPoint:endPoint, :);
+    domainProjections{idomain} = projections(:, startPoint:endPoint);
 
     % project training and testing data
-    embedding{idomain}.train = Data{idomain}.X.labeled * domainProjections{idomain};
-    embedding{idomain}.test = Data{idomain}.XTest * domainProjections{idomain};
+    embedding{idomain}.train = Data{idomain}.X.labeled * domainProjections{idomain}';
+    embedding{idomain}.test = Data{idomain}.XTest * domainProjections{idomain}';
     
-    % normalize the data if ssma method
+    % Normalization VOODOO
     switch type
-        case 'ssma'
-            % normalize the data if ssma
-            meanProj = mean(embedding{idomain}.train);
-            stdProj = std(embedding{idomain}.train);
-    
-            embedding{idomain}.train = zscore(embedding{idomain}.train);
-    
-            T = length(Data{idomain}.XTest)/2;
-    
-            embedding{idomain}.test = ((embedding{idomain}.test - ...
-                repmat(meanProj, 2*T,1)) ./ repmat(stdProj, 2*T, 1));
+        case {'ssma'}
+        % normalize the data if ssma
+        meanProj = mean(embedding{idomain}.train);
+        stdProj = std(embedding{idomain}.train);
+
+        embedding{idomain}.train = zscore(embedding{idomain}.train);
+
+        T = length(Data{idomain}.XTest)/2;
+
+        embedding{idomain}.test = ((embedding{idomain}.test - ...
+            repmat(meanProj, 2*T,1)) ./ repmat(stdProj, 2*T, 1));
     end
     
     % Try for the next iteration

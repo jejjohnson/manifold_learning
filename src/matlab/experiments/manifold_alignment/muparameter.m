@@ -2,11 +2,11 @@
 
 
 % Clear Variables
-clear all; close all; clc;
+clear; close all force; clc;
 
 % dataset
 dataset = 'vcu';
-
+rng('default');
 switch lower(dataset)
     
     case 'vcu'
@@ -91,10 +91,10 @@ AlignmentOptions.lambda = 0;
 % Experiment Options
 %==================================%
 
-muParameters = logspace(-1,2,10);
+muParameters = linspace(0,1,11);
 alphaParameters = logspace(-1,2,10);
-cases = 1:4;
-trainPrctParams = [.25, .8];
+cases = 1;%:4;
+trainPrctParams = .4;
 
 trainCount = 1;
 
@@ -105,14 +105,14 @@ rng('default');         % reproducibility
 g = waitbar(0, 'Initializing waitbar...');      % training prct waitbar
 
 
-for iTrainPrct = trainPrctParams
+for iLabelPrct = trainPrctParams
     
     % choose training percentage
-    Options.trainPrct = iTrainPrct;
+    Options.trainPrct = {iLabelPrct, iLabelPrct};
     
     
     waitbar(trainCount/numel(trainPrctParams), g, ...
-        sprintf('Training Percent: %.2f', iTrainPrct));
+        sprintf('Training Percent: %.2f', iLabelPrct));
     
     f = waitbar(0, 'Initializing waitbar...');  % cases waitbar
     
@@ -149,8 +149,8 @@ for iTrainPrct = trainPrctParams
 
 
             % Get Data in appropriate form
-            Options.trainPrct = {.1, .1};
-            Options.labelPrct = {.1, .1};
+            Options.labelPrct = {iLabelPrct, iLabelPrct};
+
             Data = getdataformat(ImageData, Options);
 
             %-----------------------------------%
@@ -180,8 +180,8 @@ for iTrainPrct = trainPrctParams
             ClassOptions.method = 'lda';
             stats.ssmalda{muCount} = alignmentclassification(Data, embedding.ssma, ClassOptions);
             
-            ClassOptions.method = 'svm';
-            stats.ssmasvm{muCount} = alignmentclassification(Data, embedding.ssma, ClassOptions);
+%             ClassOptions.method = 'svm';
+%             stats.ssmasvm{muCount} = alignmentclassification(Data, embedding.ssma, ClassOptions);
 
 
             %-----------------------------------%
@@ -201,7 +201,7 @@ for iTrainPrct = trainPrctParams
             projectionFunctions = manifoldalignment(Data, Options);
 
             % Embedding
-            embedding.wang = manifoldalignmentprojections(Data, projectionFunctions, 'ssma');
+            embedding.wang = manifoldalignmentprojections(Data, projectionFunctions, 'wang');
             
             % statistics
             ClassOptions = [];
@@ -210,8 +210,8 @@ for iTrainPrct = trainPrctParams
             ClassOptions.method = 'lda';
             stats.wanglda{muCount} = alignmentclassification(Data, embedding.wang, ClassOptions);
             
-            ClassOptions.method = 'svm';
-            stats.wangsvm{muCount} = alignmentclassification(Data, embedding.wang, ClassOptions);
+%             ClassOptions.method = 'svm';
+%             stats.wangsvm{muCount} = alignmentclassification(Data, embedding.wang, ClassOptions);
 
 
             %--------------------------------------%
@@ -228,7 +228,7 @@ for iTrainPrct = trainPrctParams
                 % manifold alignment options
                 AlignmentOptions.mu = iMu;
                 AlignmentOptions.type = 'sema'; 
-                AlignmentOptions.alpha = .2;
+                AlignmentOptions.alpha = iAlpha;
 
                 % save Alignment options
                 Options.AlignmentOptions = AlignmentOptions;
@@ -238,7 +238,7 @@ for iTrainPrct = trainPrctParams
 
                 % Embedding
                 embedding.sema = ...
-                    manifoldalignmentprojections(Data, projectionFunctions, 'ssse');
+                    manifoldalignmentprojections(Data, projectionFunctions, 'sema');
                 
                 % statistics
                 ClassOptions = [];
@@ -247,8 +247,8 @@ for iTrainPrct = trainPrctParams
                 ClassOptions.method = 'lda';
                 stats.semalda{muCount, alphaCount} = alignmentclassification(Data, embedding.sema, ClassOptions);
 
-                ClassOptions.method = 'svm';
-                stats.semasvm{muCount, alphaCount} = alignmentclassification(Data, embedding.sema, ClassOptions);
+%                 ClassOptions.method = 'svm';
+%                 stats.semasvm{muCount, alphaCount} = alignmentclassification(Data, embedding.sema, ClassOptions);
 
                 % alpha parameter counter
                 alphaCount = alphaCount + 1;
@@ -266,9 +266,9 @@ for iTrainPrct = trainPrctParams
         %% Save Data 
         %%%%%%%%%%%%%%
         
-        save_str = 'H:\Data\saved_data\manifold_alignment\parameter_estimation\';
+        save_str = 'H:\Data\saved_data\manifold_alignment\parameter_estimation\new2_';
         save_str = [save_str sprintf('%s_train%d_case%d', dataset, trainCount, icase)];
-        save(save_str, 'stats', 'Options');
+        save(save_str, 'stats', 'embedding', 'Options');
         
         
         caseCount = caseCount + 1;

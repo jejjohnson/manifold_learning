@@ -3,6 +3,8 @@ clear all; close all; clc;
 
 % dataset
 dataset = 'vcu';
+algo = 'lda';
+nCase = 1;
 
 % training amount
 trainPrct = 1;
@@ -14,15 +16,27 @@ switch lower(dataset)
         
         save_path = 'H:\Data\saved_data\manifold_alignment\parameter_estimation\';
         count = 1;
-        for iCase = 1:4
-            save_str = sprintf('%s_train%d_case%d',dataset, trainPrct, iCase);
+        for iCase = nCase
+            save_str = sprintf('new2_%s_train%d_case%d',dataset, trainPrct, iCase);
             load([save_path save_str]);
-            wang.SVM{count}= stats.wangsvm;
-            wang.LDA{count} = stats.wanglda;
-            ssma.SVM{count} = stats.ssmasvm;
-            ssma.LDA{count} = stats.ssmalda;
-            sema.SVM{count} = stats.semasvm;
-            sema.LDA{count} = stats.semalda;
+            
+            switch lower(algo)
+                case 'lda'
+                    wang.LDA{count} = stats.wanglda;
+                    ssma.LDA{count} = stats.ssmalda;
+                    sema.LDA{count} = stats.semalda;
+                    
+                case 'svm'
+                    
+                    wang.SVM{count}= stats.wangsvm;
+                    ssma.SVM{count} = stats.ssmasvm;
+                    sema.SVM{count} = stats.semasvm;
+                    
+                otherwise
+                    error('unrecognized algorithm for dataset.')
+            
+            
+            end
             count = count + 1;
         end
         
@@ -30,19 +44,20 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Plot Options
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-plotStat = 'OA';
-plotType = 'prez';
+plotStat = 'k';
+plotType = 'thesis';
 classMethod = 'lda';
-algo = 'wang';
-domain = 1;
+algo = 'sema';
+domain = 2;
 iCase = 1;
+experiment = 'alpha';
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plot Cases for Training Set 1
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-muValues = logspace(-1,2,10);
+muValues = linspace(0,1,10);
 alphaValues = logspace(-1,2,10);
 nMuValues = numel(muValues);
 nAlphaValues = numel(alphaValues);
@@ -50,17 +65,14 @@ nDims{1} = 1:4:48;
 nDims{2} = 1:4:96;
 
 switch algo
-    case {'ssma', 'wang'}
+    case {'ssma', 'wang', 'sema'}
         switch domain
             case 1
                 plotData = zeros(nMuValues, numel(nDims{1}));
             case 2
                 plotData = zeros(nMuValues, numel(nDims{2}));
         end
-    case {'sema'}
 end
-
-
     
 
 % Plot parameters
@@ -123,9 +135,40 @@ for iMu = 1:nMuValues
 
             switch classMethod
                 case 'svm'
+                    
+                    for iAlpha = 1:nAlphaValues
+                        
+                        switch domain
+                            case 1
+                                plotData(iAlpha, :) = getfield(sema.SVM{1,iCase}{iAlpha,iMu}{1,1}, plotStat);
+                                
+                            case 2
+                                plotData(iAlpha, :) = getfield(sema.SVM{1,iCase}{iAlpha,iMu}{1,2}, plotStat);
+                            otherwise
+                                error('Invalid number of domains.')
+                        end
+                    end
+                    
+                    AlphaPlots{iMu} = plotData;
 
 
                 case 'lda'
+                    
+                    for iAlpha = 1:nAlphaValues
+                        
+                        switch domain
+                            case 1
+                                plotData(iAlpha, :) = getfield(sema.LDA{1,iCase}{iAlpha,iMu}{1,1}, plotStat);
+                                
+                            case 2
+                                plotData(iAlpha, :) = getfield(sema.LDA{1,iCase}{iAlpha,iMu}{1,2}, plotStat);
+                                
+                            otherwise
+                                error('Invalid number of domains.')
+                        end
+                    end
+                    
+                    AlphaPlots{iMu} = plotData;
 
             end
 
@@ -133,7 +176,7 @@ for iMu = 1:nMuValues
 end
 
 
-% Plot data
+%% Plot data
 Options.algo = algo;
 Options.plotStat = plotStat;
 Options.domain = domain;
@@ -141,9 +184,32 @@ Options.classMethod = classMethod;
 Options.plotType = plotType;
 Options.iCase = iCase;
 Options.trainPrct = trainPrct;
+Options.experiment = experiment;
+Options.dataset = dataset;
+Options.nCase = nCase;
+
+
 
 % Function
-plotmuparameters(plotData, Options);
+
+switch lower(algo)
+    
+    case {'ssma', 'wang'}
+        [x, y] = meshgrid(muValues, nDims{domain});
+        plotmuparameters(x, y, plotData', Options);
+        
+    case {'sema'}
+        [x, y] = meshgrid(alphaValues, nDims{domain});
+        for iMu = 1:nMuValues
+            Options.iMu = iMu;
+            plotmuparameters(x, y, AlphaPlots{iMu}', Options);
+
+        end
+        
+    otherwise
+        error('Unrecognized algo for plotting.');
+end
+
     
 
 

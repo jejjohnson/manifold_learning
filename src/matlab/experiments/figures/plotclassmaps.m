@@ -142,7 +142,7 @@ switch lower(Options.type)
     
     case 'alignment'
         % Display Original Image
-        imgColor = originalImage{Options.domain}(:,:, Options.ImgColors);
+        imgColor = originalImage{Options.domain}.img(:,:, [26 15 12]);
         iCMin = min(imgColor(:));
         iCMax = max(imgColor(:));
         imgColor = uint8(255*(imgColor -iCMin)./(iCMax - iCMin));
@@ -163,9 +163,9 @@ switch lower(Options.type)
         close(gcf);
         
         % Display Ground Truth Image
-        gtMask = gtImage{Options.domain} > 0;
+        gtMask = gtImage{Options.domain}.gt > 0;
         nClasses = numel(unique(gtMask>0));
-        gtClasses = uint8(255* ind2rgb(gtImage{Options.domain}, hsv(nClasses))) .* ...
+        gtClasses = uint8(255* ind2rgb(gtImage{Options.domain}.gt, hsv(nClasses))) .* ...
             repmat(uint8(gtMask), [1 1 3]) + ...
             255 * repmat(uint8(~gtMask), [1 1 3]);
         gtClassesPad = padarray(gtClasses, [1 1 0]);
@@ -184,22 +184,22 @@ switch lower(Options.type)
         end        
         close(gcf);
         
-        % Display Resulting Class Labels
-        imgClasses = uint8(255*ind2rgb(predImage{Options.domain}, hsv(nClasses)));
-        imgClassesPad = padarray(imgClasses, [1 1], 0);
-        
-        hpredImage = figure;
-        hpred = imshow(imgClassesPad);
-        set(hpred, 'alphaData', alphaData);
-        switch lower(Options.domain)
-            case 1
-                print('E:\cloud_drives\dropbox\Apps\ShareLaTeX\thesis - masters\tex\figures\vcuclassmap1', '-depsc2');
-            case 2
-                print('E:\cloud_drives\dropbox\Apps\ShareLaTeX\thesis - masters\tex\figures\vcuclassmap2', '-depsc2');
-            otherwise
-                error('Unrecognized hsi image');
-        end
-        close(gcf);
+%         % Display Resulting Class Labels
+%         imgClasses = uint8(255*ind2rgb(predImage{Options.domain}, hsv(nClasses)));
+%         imgClassesPad = padarray(imgClasses, [1 1], 0);
+%         
+%         hpredImage = figure;
+%         hpred = imshow(imgClassesPad);
+%         set(hpred, 'alphaData', alphaData);
+%         switch lower(Options.domain)
+%             case 1
+%                 print('E:\cloud_drives\dropbox\Apps\ShareLaTeX\thesis - masters\tex\figures\vcuclassmap1', '-depsc2');
+%             case 2
+%                 print('E:\cloud_drives\dropbox\Apps\ShareLaTeX\thesis - masters\tex\figures\vcuclassmap2', '-depsc2');
+%             otherwise
+%                 error('Unrecognized hsi image');
+%         end
+%         close(gcf);
     otherwise
         error('Unregonized classmap plot type.');
 end
