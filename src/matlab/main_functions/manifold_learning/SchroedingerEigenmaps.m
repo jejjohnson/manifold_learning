@@ -224,8 +224,7 @@ switch nargout
         varargout{1} = embedding;
     case 2
         varargout{1} = embedding;
-        varargout{2} = lambda;
-        
+        varargout{2} = lambda;  
     otherwise
         error('Improper number of varagout.');
 end

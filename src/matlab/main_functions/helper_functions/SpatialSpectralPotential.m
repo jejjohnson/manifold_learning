@@ -26,6 +26,8 @@ function V = SpatialSpectralPotential(WData, CData, idx, options)
 % -------
 % 
 %
+% Information
+% -----------
 % v1  
 % Author: Nathan D. Cahill
 % Email: nathan.cahill@rit.edu
