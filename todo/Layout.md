@@ -8,6 +8,7 @@
 ## List of Key Components 
 
 1. Obtain Data
+2. Obtain Experimental Parameters
 2. Transform Data (optional)
 3. Create Adjacency Matrix
 4. Create Laplacian Matrix
@@ -70,7 +71,20 @@
 
 # Experiments
 
-* Adjacency Matrix
+#### Adjacency Matrix
+
+* Different Number of k-nearest neighbors (k= 1, 5, 10, ..., 100)
+* Different Number of radius nearest neighbors (r = 0.001, ..., 10)
+* Different kernel Functions (linear, rbf, polynomial, laplacian, cosine)
+* Different Parameters for the kernel function
+
+#### Laplacian Matrix
+
+* Different Laplacian Matrices (unnormalized, normalized, random walk, )
+
+#### Constraint Matrix
+
+* Different
 * k-Neighbours, epsilon-radius
 * Kernelization Scale
 * Potential Matrix
