@@ -69,6 +69,15 @@ switch laptype
           % Calculate the normalized Laplacian Matrix
           L = D * L
           
+          % NEED TO DO THIS FOR JORDAN WEISS
+          
+          % Compute Eigenvectors corresponding to the k smallest eigenvalues
+          %diff = eps;
+          %[U, ~] = eigs(L, k, diff);
+          %
+          %% Normalized the eigenvectors row-wise
+          %U = bsxfun(@divide, U, sqrt(U .^2, 2));
+          
     case 'normalized'          % jordan, weiss
     
           % Calculate D^(-1/2)
