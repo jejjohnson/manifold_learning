@@ -13,6 +13,8 @@ classdef Adjacency < handle
 %
 % Properties
 % ----------
+% * alg         - algorithm used for the nearest neighbor calculations
+%                 ('kdtree', 'exhaustive')
 % * nnGraph     - type of nearest neighbor graph (kNN, radiusNN, complete).
 % * kNeighbors  - number of nearest neighbors for the k-Nearest Neighbors
 %                 method.
@@ -38,6 +40,8 @@ classdef Adjacency < handle
 % * getAdjacency        - goes through the entire algorithm to get the
 %                         final Adjacency matrix.
 % * displayMat          - displays the final adjacency matrix.
+% * defaultsettings     - static method that produces a default Settings
+%                         struct for the Adjacency class.
 %
 % Information
 % -----------
@@ -48,14 +52,15 @@ classdef Adjacency < handle
 %==========================================================================    
 properties (Access = public)
 
-    kernelType = 'standard';
-    nnGraph = 'knn';
-    kNeighbors = 20;
-    distance = 'euclidean';
-    eRadius = 10;
-    kernel = 'heat';
-    sigma = 1.0;
-    nnTime = 0;
+    kernelType;
+    nnGraph;
+    kNeighbors;
+    distance;
+    eRadius;
+    kernel;
+    sigma;
+    nnTime;
+    W;
 
 end
 
@@ -63,125 +68,211 @@ properties (SetAccess = public, GetAccess = private)
 
     savedData = None;
     nnOptions;
-    
+    Settings; 
 
 end
 
 methods (Access = public)
 
     % CONSTRUCTOR
-    function self = Adjacency(Data, Settings)
-
-
-
+    function self = Adjacency(data, varargin)
+        
+        % check for input parameters
+        narginchk(0,1);
+        
+        % Parse inputs for settings
+        parseinputs(data, varargin);
     end
     
     % GET ADJAENCY MATRIX
     function W = getadjacency(self)
+        
+        % Find the Nearest Neighbors
+        [idx, distVals] = nearestneighbors(data, self.Settings);
+        
+        % Kernelize Distances
+        w = distancekernel(distVals, self.Settings);
+        
+        % Construct Adjacency Matrix
+        W = constructadjacency(data, idx, w);
+        
+        self.W = W;
         
     end
     
     % DISPLAY ADJACENCY MATRIX
     function displayadjacency(self)
         
+        figure;
+        spy(self.W);
     end
-
-    % DESTRUCTOR
-
 
 end
 
 methods (Access = private)
 
     % Parse Inputs
-    function self = parseinputs(self, data, Settings)
-
-
-    end
-
-    % Nearest Neighbor Search
-    function [idx, dist] = nnSearch(self, data)
-
-        % query the 
-
-
-    end
-
-    % KD Tree Search
-    function [idx, dist] = kdSearch(self, data)
-
-        tic;
-
-        % initialize the KD Tree Model
-        KDModel = KDTreeSearcher(data, ...
-            'Distance', self.distance);
-
-        % query the vector for k nearest neighbors
-        [idx, dist] = knnsearch(KDModel, data, ...
-            'k', self.kNeighbors+1);
-
-        % discard the first distance
-        idx = idx(:, 2:end);
-        dist = dist(:, 2:end);
-        self.nnTime = toc;
-
-    end
-
-
-
-    % Construct Adjacency Matrix
-    function W = constructadjacency(self, data, idx, w)
-
-        switch self.type
-
-            case 'standard'
-
-                % construct a sparse adjacency matrix
-                W = sparse(repmat((1:size(data, 1))', [1 self.x]), ...
-                    idx, w, size(data, 1), size(data, 1));
-
-                % make the matrix symmetric
-                W = max(W, W');
-
-            case 'similarity'
-
-                Ws_left = sparse(repmat(data, 1, length(data)));
-
-                Ws_right = sparse(Ws_left');
-
-                W = Ws_left == Ws_right;
-
-                % set all the zero values to be zero
-                W(data == 0, :) = 0;
-                W(:, data == 0) = 0;
-
-                % double precious
-                W = double(W);
-
-            case 'dissimilarity'
-
-                Ws_left = sparse(repmat(data,1,length(data)));
-
-                Ws_right = sparse(Ws_left');
-
-                W = Ws_left ~= Ws_right;
-
-                figure;
-                spy(W)
-                % set all the zero values to be zero
-                W(data == 0,:) = 0; 
-                W(:,data == 0) = 0; 
-
-                % double precision
-                W = double(W);
-
-            otherwise
-                error([mfilename, 'constructadjacency:badtype'], ...
-                    'Unrecognized adjacency matrix.');
+    function parseinputs(self, data, InputArgs)
+        %==================================================================
+        % Parse the Settings struct for the following inputs:
+        % * nnGraph     - type of nearest neighbor graph (kNN, radiusNN, complete).
+        % * kNeighbors  - number of nearest neighbors for the k-Nearest Neighbors
+        %                 method.
+        % * eRadius     - size of the radius for the radius-nearest neighbors 
+        %                 graph.
+        % * distance    - distance measurement for the kNN and eNN graph.
+        % * kernel      - distance kernel for nearest neighbor method.
+        % * sigma       - parameter for heat kernel.
+        % * nnTime      - time taken to find the nearest neighbors.
+        % * saveNN      - option to use the saved nearest neighbor results.
+        % * refNN       - flag to let the class know to save the function.
+        % * matType     - determines the type of matrix (
+        %
+        %==================================================================
+        
+        % Check for existence of Options
+        if isempty(InputArgs)               % Check for empty 
+            % Create empty Options struct
+            Options = struct;
+        elseif ~isstruct(InputArgs{1})      % Check if type struct
+            error([mfilename, 'parseInputs:badSettingsfile'], ...
+                'Incorrect variable input for nearestneighbors function.');
+        else
+            Options = InputArgs{1};
         end
-
-
+        
+        % Check if data is 2D, numeric
+        classes = {'numeric'};
+        attributes = {'2d'};
+        validateattributes(data, classes, attributes);
+        
+        % Intiate inputParse class
+        p = inputParser;
+        
+        % Algorithm Specifics
+        expectedAlgorithms = {'kdtree', 'exhaustive'};
+        defaultAlgorithm = expectedAlgorithms{1};       % default - kdtree
+        addParameter(p, 'alg', defaultAlgorithm, ...
+            @(x) any(validatestring(x, expectedAlgorithms)));
+        
+        % Nearest Neighbor Graph
+        expectedNNGraph = {'knn', 'radius'};
+        defaultNNGraph = expectedNNGraph{2};            % default - radius
+        addParameter(p, 'nnGraph', defaultNNGraph, ...
+            @(x) any(validatestring(x, expectedNNGraph)));
+        
+        % k Parameter for kNN Graph
+        defaultk = 10;                                  % default k = 10
+        addOptional(p, 'kNeighbors', defaultk, @isnumeric);      
+        
+        % r Parameter for eNN Graph
+        defaultr = 10;                                  % default r = 10
+        addOptional(p, 'eRadius', defaultr, @isnumeric);      
+        
+        % distance measurement for kNN and eNN graph
+        expecteddistance = {'euclidean'};
+        defaultdistance = expecteddistance{1};
+        addParameter(p, 'distance', defaultdistance, ...
+            @(x) any(validatestring(x, expecteddistance)));
+        
+        % Kernel for NN distances
+        expectedkernel = {'heat', 'cosine'};
+        defaultkernel = expectedkernel{1};
+        addParameter(p, 'kernel', defaultkernel, ...
+            @(x) any(validatestring(x, expectedkernel)));
+        
+        % Save NN Results Flag
+        if ~isfield(Options.saveNN)
+            self.saveNN = 0;
+        elseif isequal(Options.saveNN, 1, Options.saveNN, 0)
+            self.saveNN = Options.saveNN;
+        else
+            error([mfilename, 'parseinputs:badSaveNN'], ...
+                'Incorrect saveNN field input.');
+        end
+        
+        % reference NN matlab results struct
+        if ~isfield(Options.refNN)
+            self.refNN = 0;
+        elseif exist(Options.refNN, 'file')
+            self.refNN = Options.refNN;
+        else
+            error([mfilename, 'parseinputs:badRefNN'], ...
+                'Incorrect or unrecognized refNN field input.');
+        end
+        
+        
+        % Parse struct
+        parse(p, Options);
+        
+        % Set Properties to Class Instance Accordingly
+        self.Settings = p.Results;
+        self.alg = p.Results.alg;
+        self.nnGraph = p.Results.nnGraph;
+        self.kNeighbors = p.Results.kNeighbors;
+        self.eRadius = p.Results.eRadius;
+        self.distance = p.Results.distance;
+        self.kernel = p.Results.kernel;
+        self.sigma = p.Results.sigma;
+        self.nnTime = 0;
+        
+        
+        
     end
+
+%     % Construct Adjacency Matrix
+%     function W = constructadjacency(self, data, idx, w)
+% 
+%         switch self.type
+% 
+%             case 'standard'
+% 
+%                 % construct a sparse adjacency matrix
+%                 W = sparse(repmat((1:size(data, 1))', [1 self.x]), ...
+%                     idx, w, size(data, 1), size(data, 1));
+% 
+%                 % make the matrix symmetric
+%                 W = max(W, W');
+% 
+%             case 'similarity'
+% 
+%                 Ws_left = sparse(repmat(data, 1, length(data)));
+% 
+%                 Ws_right = sparse(Ws_left');
+% 
+%                 W = Ws_left == Ws_right;
+% 
+%                 % set all the zero values to be zero
+%                 W(data == 0, :) = 0;
+%                 W(:, data == 0) = 0;
+% 
+%                 % double precious
+%                 W = double(W);
+% 
+%             case 'dissimilarity'
+% 
+%                 Ws_left = sparse(repmat(data,1,length(data)));
+% 
+%                 Ws_right = sparse(Ws_left');
+% 
+%                 W = Ws_left ~= Ws_right;
+% 
+%                 figure;
+%                 spy(W)
+%                 % set all the zero values to be zero
+%                 W(data == 0,:) = 0; 
+%                 W(:,data == 0) = 0; 
+% 
+%                 % double precision
+%                 W = double(W);
+% 
+%             otherwise
+%                 error([mfilename, 'constructadjacency:badtype'], ...
+%                     'Unrecognized adjacency matrix.');
+%         end
+% 
+% 
+%     end
 
 end
 
@@ -289,12 +380,12 @@ methods (Static)
     % QUERY TYPE
     switch Options.nnGraph
 
-        case 'knn'
+        case 'kNN'
 
             % KNN SEARCH
             [indices, distances] = knnsearch(KModel, data, 'k', nn+1);
 
-        case 'range'
+        case 'radiusNN'
 
             % RANGE SEARCH
             [indices, distances] = rangesearch(KModel, data, radius);
@@ -447,6 +538,61 @@ methods (Static)
 
     end
 
+    end
+    
+    % DEFAULT SETTINGS FILE
+    function Settings = defaultsettings()
+    %======================================================================
+    %
+    % DEFAULTSETTINGS gives some default parameters when there is no
+    % settings file during the class construction. 
+    %
+    % Parameters
+    % ----------
+    % * alg         - nearest neighbor algorithm
+    % * nnGraph     - type of nearest neighbor graph 
+    % * kNeighbors  - number of nearest neighbors for the k-Nearest 
+    %                 Neighbors method.
+    % * eRadius     - size of the radius for the radius-nearest neighbors 
+    %                 graph.
+    % * distance    - distance measurement for the kNN and eNN graph.
+    % * kernel      - distance kernel for nearest neighbor method.
+    % * sigma       - parameter for heat kernel.
+    % * nnTime      - time taken to find the nearest neighbors.
+    % * saveNN      - option to use the saved nearest neighbor results.
+    % * refNN       - flag to let the class know to save the function.
+    % * matType     - determines the type of matrix (  
+    %
+    %======================================================================
+    
+    % Initialize setting struct
+    Settings = struct;
+    
+    % Assign defaults for Settings fields
+    Settings.alg = 'kdtree';            % Nearest-Neighbor algorithm
+    Settings.nnGraph = 'radiusNN';      % Nearest-Neighbor Graph
+    Settings.kNeighbors = 10;           % k-Nearest Neighbors
+    Settings.eRadius = 10;              % e-Radius Neighbors
+    Settings.distance = 'euclidean';    % Distance metric for neighbors
+    Settings.kernel = 'heat';           % Kernel Function
+    Settings.sigma = 1.0;               % Sigma Parameter for k-NN
+    Settings.nnTime = 0;                % Time for NN to compute
+    Settings.saveNN = 0;                % Save flag for NN
+    Settings.refNN = 'na';              % Save location for NN mat file
+    Settings.matType = 'sparse';        % Matrix type
+
+    end
+    
+    % CONSTRUCT ADJACENCY MATRIX
+    function W = constructadjacency(data, idx, w)
+        
+        % construct a sparse adjacency matrix
+        W = sparse(repmat((1:size(data, 1))', [1 self.x]), ...
+            idx, w, size(data, 1), size(data, 1));
+
+        % make the matrix symmetric
+        W = max(W, W');
+        
     end
 
 end

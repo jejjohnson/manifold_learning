@@ -17,7 +17,7 @@ KESettings.method = 'LE';
 AdjacencySettings.adjacencyType = 'nn';
 AdjacencySettings.matrixType = 'sparse';     % ['sparse', 'dense'] (str)
 
-%-- K-NEAREST NEIGHBORS --%
+%% k-Nearest Neighbors
 knnSettings.type = 'standard';
 knnSettings.nn_graph = 'knn';       % ['knn', 'kdtree', 'flann', 'radius']
 knnSettings.k = 20;                 % num of nearest neighbors (int)
@@ -67,7 +67,7 @@ eigSettings.numEigs = 10;
 SpaSpeSettings.ssType = 'spaspec'; % ['spaspe', 'spespa']
 
 % Spectral NN Settings
-SpeKnnSettings.adjacencyType = 'nn';
+SpeKnnSettings.adjacencyType = 'nn';            % Adjacency Matr
 SpeKnnSettings.matrixType = 'sparse';
 SpeKnnSettings.type = 'standard';
 SpeKnnSettings.nnGraph = 'knn';
