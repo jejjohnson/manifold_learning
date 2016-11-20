@@ -11,6 +11,8 @@ classdef Adjacency < handle
 % Examples
 % --------
 %
+% TODO - make concrete examples after tests
+%
 % Properties
 % ----------
 % * alg         - algorithm used for the nearest neighbor calculations
@@ -103,8 +105,15 @@ methods (Access = public)
     % DISPLAY ADJACENCY MATRIX
     function displayadjacency(self)
         
+        % If adjacency matrix has not been calculated
+        if isempty(self.W)
+            % Calculate Adjacency Matrix
+            self.W = getadjacency(self);
+        end
+        
         figure;
         spy(self.W);
+        
     end
 
 end
@@ -136,7 +145,7 @@ methods (Access = private)
             Options = struct;
         elseif ~isstruct(InputArgs{1})      % Check if type struct
             error([mfilename, 'parseInputs:badSettingsfile'], ...
-                'Incorrect variable input for nearestneighbors function.');
+                'Incorrect Settings file for Adjacency class.');
         else
             Options = InputArgs{1};
         end
@@ -219,60 +228,6 @@ methods (Access = private)
         
         
     end
-
-%     % Construct Adjacency Matrix
-%     function W = constructadjacency(self, data, idx, w)
-% 
-%         switch self.type
-% 
-%             case 'standard'
-% 
-%                 % construct a sparse adjacency matrix
-%                 W = sparse(repmat((1:size(data, 1))', [1 self.x]), ...
-%                     idx, w, size(data, 1), size(data, 1));
-% 
-%                 % make the matrix symmetric
-%                 W = max(W, W');
-% 
-%             case 'similarity'
-% 
-%                 Ws_left = sparse(repmat(data, 1, length(data)));
-% 
-%                 Ws_right = sparse(Ws_left');
-% 
-%                 W = Ws_left == Ws_right;
-% 
-%                 % set all the zero values to be zero
-%                 W(data == 0, :) = 0;
-%                 W(:, data == 0) = 0;
-% 
-%                 % double precious
-%                 W = double(W);
-% 
-%             case 'dissimilarity'
-% 
-%                 Ws_left = sparse(repmat(data,1,length(data)));
-% 
-%                 Ws_right = sparse(Ws_left');
-% 
-%                 W = Ws_left ~= Ws_right;
-% 
-%                 figure;
-%                 spy(W)
-%                 % set all the zero values to be zero
-%                 W(data == 0,:) = 0; 
-%                 W(:,data == 0) = 0; 
-% 
-%                 % double precision
-%                 W = double(W);
-% 
-%             otherwise
-%                 error([mfilename, 'constructadjacency:badtype'], ...
-%                     'Unrecognized adjacency matrix.');
-%         end
-% 
-% 
-%     end
 
 end
 
@@ -411,9 +366,9 @@ methods (Static)
                 'Incorrect number of outputs.');
     end
     
-    %--------------------------------------%
-    % SubFunction - Kernel Function Parser %
-    %--------------------------------------%
+    %------------------------------------------------%
+    % SubFunction - Nearest Neighbor Function Parser %
+    %------------------------------------------------%
     function Options = parseinputs(varargin)
         %==================================================================
         %
@@ -509,6 +464,9 @@ methods (Static)
     narginchk(1,2);
     nargoutchk(1,1);
 
+    % parse inputs
+    Options = parseinputs(varargin);
+    
     % Scale the matrices
     switch Options.kernel
 
@@ -534,8 +492,51 @@ methods (Static)
     %--------------------------------------%
     % SubFunction - Kernel Function Parser %
     %--------------------------------------%
-    function Options = parseInputs(varargin)
-
+    function Options = parseinputs(varargin)
+        %==================================================================
+        %
+        % PARSEINPUTS checks for the following parameters:
+        % * kernel
+        % * sigma
+        %
+        %==================================================================
+        
+        % Check for existence of Options
+        if isempty(varargin)
+            % Create empty Options struct
+            Options = struct;
+        elseif ~isstruct(varargin{1})
+            error([mfilename, 'parseInputs:badOptionsfile'], ...
+                'Incorrect variable input for kernel function.');
+        else
+            Options = varargin{1};
+        end
+        
+        % Intiate inputParse class
+        p = inputParser;
+        
+        % Kernel Function
+        expectedkernels = {'heat', 'cosine'};
+        defaultAlgorithm = expectedkernels{1};       % default - kdtree
+        addParameter(p, 'alg', defaultAlgorithm, ...
+            @(x) any(validatestring(x, expectedkernels)));
+        
+        % Sigma for Heat Kernel
+        paramName = 'sigma';
+        defaults = {'heat', 'cosine'};
+        defaultSigma = defaults{1};         % default - 1.0
+        errorMsg = 'Value must be positive and numeric.';
+        validationFcn = @(x) ...
+            assert(isnumeric(x) && (x > 0), errorMsg);
+        addOptional(p, paramName, defaultSigma, validationFcn); 
+        
+        
+        % Parse struct
+        parse(p, Options);
+        
+        % Graph Results as Options struct
+        Options = p.Results;
+        
     end
 
     end
