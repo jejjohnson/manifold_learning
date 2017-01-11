@@ -11,7 +11,18 @@ classdef Adjacency < handle
 % Examples
 % --------
 %
-% TODO - make concrete examples after tests
+% ~ Example which uses the default settings and just creates an adjacency
+%   matrix
+% >> X = data;
+% >> A = Adjacency(X); 
+%
+% - Example which uses the struct file
+% >> Options = struct;
+% >> Options.alg = 'kdtree';
+% >> Options.nnGraph = 'radiusNN';
+% >> Options.eRadius = 2;
+% >> Options.kernel = 'heat';
+% >> A = Adjacency(A, Options);
 %
 % Properties
 % ----------
