@@ -29,7 +29,7 @@ classdef Adjacency < handle
 % * alg         - algorithm used for the nearest neighbor calculations
 %                 ('kdtree', 'exhaustive')
 % * nnGraph     - type of nearest neighbor graph (kNN, radiusNN, complete).
-% * kNeighbors  - number of nearest neighbors for the k-Nearest Neighbors
+% * k  - number of nearest neighbors for the k-Nearest Neighbors
 %                 method.
 % * eRadius     - size of the radius for the radius-nearest neighbors 
 %                 graph.
@@ -67,19 +67,21 @@ properties (Access = public)
 
     kernelType;
     nnGraph;
-    kNeighbors;
+    k;
     distance;
     eRadius;
     kernel;
     sigma;
     nnTime;
+    X;
     W;
+    alg;
 
 end
 
-properties (SetAccess = public, GetAccess = private)
+properties (SetAccess = private, GetAccess = public)
 
-    savedData = None;
+    savedData;
     nnOptions;
     Settings; 
 
@@ -91,23 +93,23 @@ methods (Access = public)
     function self = Adjacency(data, varargin)
         
         % check for input parameters
-        narginchk(0,1);
+        narginchk(1,2);
         
         % Parse inputs for settings
-        parseinputs(data, varargin);
+        self.parseinputs(data, varargin);
     end
     
     % GET ADJAENCY MATRIX
     function W = getadjacency(self)
         
         % Find the Nearest Neighbors
-        [idx, distVals] = nearestneighbors(data, self.Settings);
+        [idx, distVals] = self.nearestneighbors(self.X, self.Settings);
         
         % Kernelize Distances
-        w = distancekernel(distVals, self.Settings);
+        w = self.distancekernel(distVals, self.Settings);
         
         % Construct Adjacency Matrix
-        W = constructadjacency(data, idx, w);
+        W = self.constructadjacency(self.X, idx, w);
         
         self.W = W;
         
@@ -134,9 +136,10 @@ methods (Access = private)
     % Parse Inputs
     function parseinputs(self, data, InputArgs)
         %==================================================================
+        %
         % Parse the Settings struct for the following inputs:
         % * nnGraph     - type of nearest neighbor graph (kNN, radiusNN, complete).
-        % * kNeighbors  - number of nearest neighbors for the k-Nearest Neighbors
+        % * k  - number of nearest neighbors for the k-Nearest Neighbors
         %                 method.
         % * eRadius     - size of the radius for the radius-nearest neighbors 
         %                 graph.
@@ -146,7 +149,7 @@ methods (Access = private)
         % * nnTime      - time taken to find the nearest neighbors.
         % * saveNN      - option to use the saved nearest neighbor results.
         % * refNN       - flag to let the class know to save the function.
-        % * matType     - determines the type of matrix (
+        % * matType     - determines the type of matrix
         %
         %==================================================================
         
@@ -183,7 +186,7 @@ methods (Access = private)
         
         % k Parameter for kNN Graph
         defaultk = 10;                                  % default k = 10
-        addOptional(p, 'kNeighbors', defaultk, @isnumeric);      
+        addOptional(p, 'k', defaultk, @isnumeric);      
         
         % r Parameter for eNN Graph
         defaultr = 10;                                  % default r = 10
@@ -201,25 +204,40 @@ methods (Access = private)
         addParameter(p, 'kernel', defaultkernel, ...
             @(x) any(validatestring(x, expectedkernel)));
         
-        % Save NN Results Flag
-        if ~isfield(Options.saveNN)
-            self.saveNN = 0;
-        elseif isequal(Options.saveNN, 1, Options.saveNN, 0)
-            self.saveNN = Options.saveNN;
-        else
-            error([mfilename, 'parseinputs:badSaveNN'], ...
-                'Incorrect saveNN field input.');
-        end
+        % Sigma Value for Heat kernel
+        defaultSigma = 1.0;
+        errorMsg = 'Sigma must be positive and numeric.';
+        validateSigma = @(x) assert(isnumeric(x) && (x>0), errorMsg);
+        addParameter(p, 'sigma', defaultSigma, ...
+            validateSigma);
         
-        % reference NN matlab results struct
-        if ~isfield(Options.refNN)
-            self.refNN = 0;
-        elseif exist(Options.refNN, 'file')
-            self.refNN = Options.refNN;
-        else
-            error([mfilename, 'parseinputs:badRefNN'], ...
-                'Incorrect or unrecognized refNN field input.');
-        end
+% p = inputParser;
+% paramName = 'myparam';
+% default = 1;
+% errorMsg = 'Value must be positive, scalar, and numeric.'; 
+% validationFcn = @(x) assert(isnumeric(x) && isscalar(x) ...
+%     && (x > 0),errorMsg);
+% addParameter(p,paramName,default,validationFcn)
+        
+%         % Save NN Results Flag
+%         if ~isfield(Options.saveNN)
+%             self.saveNN = 0;
+%         elseif isequal(Options.saveNN, 1, Options.saveNN, 0)
+%             self.saveNN = Options.saveNN;
+%         else
+%             error([mfilename, 'parseinputs:badSaveNN'], ...
+%                 'Incorrect saveNN field input.');
+%         end
+%         
+%         % reference NN matlab results struct
+%         if ~isfield(Options.refNN)
+%             self.refNN = 0;
+%         elseif exist(Options.refNN, 'file')
+%             self.refNN = Options.refNN;
+%         else
+%             error([mfilename, 'parseinputs:badRefNN'], ...
+%                 'Incorrect or unrecognized refNN field input.');
+%         end
         
         
         % Parse struct
@@ -229,14 +247,14 @@ methods (Access = private)
         self.Settings = p.Results;
         self.alg = p.Results.alg;
         self.nnGraph = p.Results.nnGraph;
-        self.kNeighbors = p.Results.kNeighbors;
+        self.k = p.Results.k;
         self.eRadius = p.Results.eRadius;
         self.distance = p.Results.distance;
         self.kernel = p.Results.kernel;
         self.sigma = p.Results.sigma;
         self.nnTime = 0;
         
-        
+        self.X = data;
         
     end
 
@@ -316,7 +334,7 @@ methods (Static)
     %=================================================================%
 
     % check number of input arguments
-    narginchk(0,1);
+    narginchk(1,2);
 
     % check number of output arguments
     nargoutchk(1,2);
@@ -346,19 +364,19 @@ methods (Static)
     % QUERY TYPE
     switch Options.nnGraph
 
-        case 'kNN'
+        case 'knn'
 
             % KNN SEARCH
-            [indices, distances] = knnsearch(KModel, data, 'k', nn+1);
+            [indices, distances] = knnsearch(KModel, data, 'k', Options.k+1);
 
-        case 'radiusNN'
+        case 'radius'
 
             % RANGE SEARCH
-            [indices, distances] = rangesearch(KModel, data, radius);
+            [indices, distances] = rangesearch(KModel, data, Options.r);
 
         otherwise 
             error([mfilename, 'nearestneighbors:unrecognizednnmethod'], ...
-                'Unrecognized NN method. Must use "knn" or "range"');
+                'Unrecognized NN method. Must use "knn" or "radius"');
     end
 
     % DISPLACE OLD POINTS
@@ -366,7 +384,7 @@ methods (Static)
     distances = distances(:, 2:end);
 
     % VARIABLE OUPUTS
-    switch numel(nargout)
+    switch nargout
         case 1
             varargout{1} = indices;
         case 2
@@ -380,7 +398,7 @@ methods (Static)
     %------------------------------------------------%
     % SubFunction - Nearest Neighbor Function Parser %
     %------------------------------------------------%
-    function Options = parseinputs(varargin)
+    function Options = parseinputs(Inputs)
         %==================================================================
         %
         % PARSEINPUTS checks for the following parameters:
@@ -392,14 +410,14 @@ methods (Static)
         %==================================================================
         
         % Check for existence of Options
-        if isempty(varargin)
+        if isempty(Inputs{1})
             % Create empty Options struct
             Options = struct;
-        elseif ~isstruct(varargin{1})
+        elseif ~isstruct(Inputs{1})
             error([mfilename, 'parseInputs:badOptionsfile'], ...
-                'Incorrect variable input for nearestneighbors function.');
+                'Incorrect Options input for nearestneighbors function.');
         else
-            Options = varargin{1};
+            Options = Inputs{1};
         end
         
         % Intiate inputParse class
@@ -413,7 +431,7 @@ methods (Static)
         
         % Nearest Neighbor Graph
         expectedNNGraph = {'knn', 'radius'};
-        defaultNNGraph = expectedNNGraph{2};            % default - radius
+        defaultNNGraph = expectedNNGraph{1};            % default - radius
         addParameter(p, 'nnGraph', defaultNNGraph, ...
             @(x) any(validatestring(x, expectedNNGraph)));
         
@@ -495,7 +513,7 @@ methods (Static)
     end
 
     % Outputs
-    switch length(narargout)
+    switch nargout
         case 1
             varargout{1} = scaledDistances;
     end
@@ -503,7 +521,7 @@ methods (Static)
     %--------------------------------------%
     % SubFunction - Kernel Function Parser %
     %--------------------------------------%
-    function Options = parseinputs(varargin)
+    function Options = parseinputs(Inputs)
         %==================================================================
         %
         % PARSEINPUTS checks for the following parameters:
@@ -513,14 +531,14 @@ methods (Static)
         %==================================================================
         
         % Check for existence of Options
-        if isempty(varargin)
+        if isempty(Inputs{1})
             % Create empty Options struct
             Options = struct;
-        elseif ~isstruct(varargin{1})
+        elseif ~isstruct(Inputs{1})
             error([mfilename, 'parseInputs:badOptionsfile'], ...
                 'Incorrect variable input for kernel function.');
         else
-            Options = varargin{1};
+            Options = Inputs{1};
         end
         
         % Intiate inputParse class
@@ -529,13 +547,12 @@ methods (Static)
         % Kernel Function
         expectedkernels = {'heat', 'cosine'};
         defaultAlgorithm = expectedkernels{1};       % default - kdtree
-        addParameter(p, 'alg', defaultAlgorithm, ...
+        addParameter(p, 'kernel', defaultAlgorithm, ...
             @(x) any(validatestring(x, expectedkernels)));
         
         % Sigma for Heat Kernel
         paramName = 'sigma';
-        defaults = {'heat', 'cosine'};
-        defaultSigma = defaults{1};         % default - 1.0
+        defaultSigma = 1.0;         % default - 1.0
         errorMsg = 'Value must be positive and numeric.';
         validationFcn = @(x) ...
             assert(isnumeric(x) && (x > 0), errorMsg);
@@ -563,7 +580,7 @@ methods (Static)
     % ----------
     % * alg         - nearest neighbor algorithm
     % * nnGraph     - type of nearest neighbor graph 
-    % * kNeighbors  - number of nearest neighbors for the k-Nearest 
+    % * k  - number of nearest neighbors for the k-Nearest 
     %                 Neighbors method.
     % * eRadius     - size of the radius for the radius-nearest neighbors 
     %                 graph.
@@ -583,7 +600,7 @@ methods (Static)
     % Assign defaults for Settings fields
     Settings.alg = 'kdtree';            % Nearest-Neighbor algorithm
     Settings.nnGraph = 'radiusNN';      % Nearest-Neighbor Graph
-    Settings.kNeighbors = 10;           % k-Nearest Neighbors
+    Settings.k = 10;           % k-Nearest Neighbors
     Settings.eRadius = 10;              % e-Radius Neighbors
     Settings.distance = 'euclidean';    % Distance metric for neighbors
     Settings.kernel = 'heat';           % Kernel Function
@@ -599,7 +616,7 @@ methods (Static)
     function W = constructadjacency(data, idx, w)
         
         % construct a sparse adjacency matrix
-        W = sparse(repmat((1:size(data, 1))', [1 self.x]), ...
+        W = sparse(repmat((1:size(data, 1))', [1 size(idx,2)]), ...
             idx, w, size(data, 1), size(data, 1));
 
         % make the matrix symmetric
