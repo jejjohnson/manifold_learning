@@ -166,7 +166,7 @@ class SchroedingerEigenmaps(BaseEstimator):
             X_spatial = get_spatial_coordinates(self.X_img)
             # find the k_nearest neighbors indices
             _, V_ind = knn_scikit(X, n_neighbors=self.sp_neighbors,
-                               method='brute')
+                                  method='brute')
             # save the spatial-spectral potential
             self.ss_potential = ssse_potential(X, X_spatial,
                                                V_ind, weight=self.sp_affinity)
@@ -182,6 +182,7 @@ class SchroedingerEigenmaps(BaseEstimator):
             raise ValueError('Sorry. Unrecognized Potential matrix.')
 
         return self
+
 
 def graph_embedding(adjacency, data,
                     norm_laplace = None,lap_method = 'sklearn',

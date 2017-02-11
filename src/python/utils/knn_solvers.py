@@ -143,25 +143,7 @@ def ann_annoy(data, metric='euclidean',
     # initialize the annoy database
     ann = AnnoyIndex(dimension)
 
-    # store the datapoints
-    for (i, row) in enumerate(data):
-        ann.add_item(i, row.tolist())
 
-    # build the index
-    ann.build(trees)
-
-    # find the k-nearest neighbors for all points
-    idx = np.zeros((datapoints, n_neighbors), dtype='int')
-    distVals = idx.copy().astype(np.float)
-
-    # extract the distance values
-    for i in range(0, datapoints):
-        idx[i,:] = ann.get_nns_by_item(i, n_neighbors)
-
-        for j in range(0, n_neighbors):
-            distVals[i,j] = ann.get_distance(i, idx[i,j])
-
-    return distVals, idx
 
 # Hdidx package for approximate nearest neighbor function
 def ann_hdidx(data,
