@@ -7,8 +7,8 @@ Created on Sat Apr 23 11:57:14 2016
 import numpy as np
 from scipy.sparse import csr_matrix, csc_matrix, spdiags, diags
 from sklearn.utils.graph import graph_laplacian
-from nearestneighbor_solver import knn_scikit, knn_annoy
-from knn_solvers import KnnSolver
+from utils.nearestneighbor_solver import knn_scikit, knn_annoy
+from utils.knn_solvers import KnnSolver
 
 # compute the weighted adjacency matrix
 def compute_adjacency(X, n_neighbors=5, affinity=None,weight='heat',
@@ -61,26 +61,23 @@ def compute_adjacency(X, n_neighbors=5, affinity=None,weight='heat',
 
 # Create Sparse Weighted Adjacency Matrix
 def create_adjacency(distance_vals, indices):
-    """This function will create a sparse symmetric
-    weighted adjacency matrix from nearest neighbors
-    and their corresponding distances.
+    """This function will create a sparse symmetric weighted adjacency matrix
+    from nearest neighbors and their corresponding distances.
 
-    Parameters:
+    Parameters
     -----------
-    * idx                     - an MxN array where M are the number
-                                of data points and N are the N-1
-                                nearest neighbors connected to that
-                                data point M.
+    distance_vals : numpy [MxN]
+        an MxN array where M are the number of data points and N are the N-1
+        nearest neighbor distances connected to that data point M.
 
-    *  distance_vals          - an MxN array where M are the number
-                                of data points and N are the N-1
-                                nearest neighbor distances connected
-                                to that data point M.
+    indices : array [MxN]
+        an MxN array where M are the number of data points and N are the N-1
+        nearest neighbors connected to that data point M.
 
-    Returns:
+    Returns
     --------
-    Adjacency Matrix          - a sparse MxM sparse weighted adjacency
-                                matrix.
+    Adjacency Matrix : array, sparse [MxM]
+        a sparse MxM sparse weighted adjacency  matrix.
     """
     # Separate, tile and ravel the neighbours from their
     # corresponding points
@@ -215,18 +212,19 @@ def laplacian_test():
     ax[0].set_title('My Method; {t:.2e} secs'.format(t=t[0]))
     ax[1].spy(L[1], precision=1E-10, markersize=.2)
     ax[1].set_title('Sklearn; {t:.2e} secs'.format(t=t[1]))
+    plt.show()
 
-    print np.shape(L[0]), np.shape(L[1])
-    tol = 1E-12
+    print(np.shape(L[0]), np.shape(L[1]))
+    tol = 1E-1
     print('Different between the Laplacian Matrix' \
             'values close with tol: {tol}?'.format(tol=tol))
 
-    assert (np.allclose(L[0].data, L[1].data)), "False Laplacians not" \
-    "the same."
+    assert (np.allclose(L[0].data, L[1].data, rtol=tol)), "False Laplacians not" \
+    " the same."
     print('Test passed.')
 
 
-    plt.show()
+
 
 
 if __name__ == "__main__":

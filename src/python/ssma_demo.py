@@ -2,6 +2,7 @@ from data.data_generation import generate_gaussian
 from manifold_alignment.ssma import ManifoldAlignment
 import numpy as np
 from utils.classification_list import lda_pred, accuracy_stats
+import matplotlib.pyplot as plt
 
 
 # my test function to see if it works. Should be in the 80s range of
@@ -28,13 +29,13 @@ def test_ma_gaussian(ma_method='wang', n_components=2, plot=False):
     Y['label'] = [Y1 , Y2]
     Y['test'] = [YT1, YT2]
 
-    print np.shape(X['label'][0]), np.shape(Y['label'][0])
-    print np.shape(X['unlabel'][0])
-    print np.shape(X['test'][0]), np.shape(Y['test'][0])
+    print(np.shape(X['label'][0]), np.shape(Y['label'][0]))
+    print(np.shape(X['unlabel'][0]))
+    print(np.shape(X['test'][0]), np.shape(Y['test'][0]))
 
-    print np.shape(X['label'][1]), np.shape(Y['label'][1])
-    print np.shape(X['unlabel'][1])
-    print np.shape(X['test'][1]), np.shape(Y['test'][1])
+    print(np.shape(X['label'][1]), np.shape(Y['label'][1]))
+    print(np.shape(X['unlabel'][1]))
+    print(np.shape(X['test'][1]), np.shape(Y['test'][1]))
 
     ma_method = ManifoldAlignment(ma_method=ma_method,
                                   lap_method='personal')

@@ -62,7 +62,7 @@ class SchroedingerEigenmaps(BaseEstimator):
                  metric = 'euclidean',
                  n_jobs = 4,
                  weight = 'heat',
-                 affinity = None,
+                 affinity = 'heat',
                  gamma = 1.0,
                  trees = 10,
                  normalization = None,          # eigenvalue tuner parameters
@@ -264,6 +264,7 @@ def get_spatial_coordinates(data):
 
     """
     # Get the dimensions of the original data
+    print(data)
     try:        # Try the case where we have a 3D data set
         nrows = data.shape[0]
         ncols = data.shape[1]

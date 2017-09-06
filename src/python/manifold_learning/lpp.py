@@ -56,28 +56,11 @@ class LocalityPreservingProjections(BaseEstimator, TransformerMixin):
         https://github.com/jakevdp/lpproj
 
     """
-    def __init__(self,
-                 # eigenvalue solver initials
-                 n_components=2,
-                 eig_solver = 'dense',
-                 norm_laplace = False,
-                 eigen_tol = 1E-12,
-                 # eigenvalue tuner initials
-                 regularizer = None,
-                 lap_method = 'sklearn',
-                 normalization = None,
-                 # knn problem initials
-                 n_neighbors = 2,
-                 neighbors_algorithm = 'brute',
-                 metric = 'euclidean',
-                 n_jobs = 1,
-                 weight = 'heat',
-                 affinity = None,
-                 gamma = 1.0,
-                 trees = 10,
-                 # general problem parameters
-                 sparse = True,
-                 random_state = 0):
+    def __init__(self, n_components=2, eig_solver = 'dense', norm_laplace = False,
+                 eigen_tol = 1E-12, regularizer = None, lap_method = 'sklearn',
+                 normalization = None, n_neighbors = 2,neighbors_algorithm = 'brute',
+                 metric = 'euclidean',n_jobs = 1,weight = 'heat',affinity = None,
+                 gamma = 1.0,trees = 10,sparse = True,random_state = 0):
         self.n_components = n_components
         self.eig_solver = eig_solver
         self.regularizer = regularizer

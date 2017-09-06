@@ -6,7 +6,7 @@ Created on Tue May 10 18:39:17 2016
 """
 from sklearn.neighbors import NearestNeighbors, LSHForest
 from annoy import AnnoyIndex
-import hdidx
+# import hdidx
 import numpy as np
 
 class KnnSolver(object):
@@ -71,11 +71,13 @@ class KnnSolver(object):
                             metric=self.metric,
                             n_neighbors=self.n_neighbors,
                             trees=self.trees)
-       elif self.nn_algorithm in ['hdidx']:
 
-           return ann_hdidx(data,
-                            n_neighbors = self.n_neighbors,
-                            indexer=self.trees)
+       elif self.nn_algorithm in ['hdidx']:
+           raise NotImplementedError('Unrecognized K-Nearest Neighbor Method.')
+       #
+       #     return ann_hdidx(data,
+       #                      n_neighbors = self.n_neighbors,
+       #                      indexer=self.trees)
        else:
            raise ValueError('Unrecognized NN Method.')
 
@@ -164,29 +166,29 @@ def ann_annoy(data, metric='euclidean',
     return distVals, idx
 
 # Hdidx package for approximate nearest neighbor function
-def ann_hdidx(data,
-              n_neighbors = 10,
-              indexer=8):
-
-   datapoints = data.shape[0]
-   dimensions = data.shape[1]
-
-   data_query = np.random.random((n_neighbors, dimensions))
-   print np.shape(data_query)
-
-   # create Product Quantization Indexer
-   idx = hdidx.indexer.IVFPQIndexer()
-
-   # build indexer
-   idx.build({'vals': data, 'nsubq': indexer})
-
-   # add database items to the indexer
-   idx.add(data)
-
-   # searching in the database and return top-10 items for
-   # each query
-   idn, distVals = idx.search(data, n_neighbors)
-   return distVals, idn
+# def ann_hdidx(data,
+#               n_neighbors = 10,
+#               indexer=8):
+#
+#    datapoints = data.shape[0]
+#    dimensions = data.shape[1]
+#
+#    data_query = np.random.random((n_neighbors, dimensions))
+#    print np.shape(data_query)
+#
+#    # create Product Quantization Indexer
+#    idx = hdidx.indexer.IVFPQIndexer()
+#
+#    # build indexer
+#    idx.build({'vals': data, 'nsubq': indexer})
+#
+#    # add database items to the indexer
+#    idx.add(data)
+#
+#    # searching in the database and return top-10 items for
+#    # each query
+#    idn, distVals = idx.search(data, n_neighbors)
+#    return distVals, idn
 
 if __name__ == "__main__":
 

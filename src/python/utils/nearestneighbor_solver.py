@@ -7,7 +7,6 @@ Created on Sat Apr 23 11:22:07 2016
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from annoy import AnnoyIndex
-import hdidx
 
 # Find the k-nearest neighbours
 def knn_scikit(data, n_neighbors=4, method='brute'):
