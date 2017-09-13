@@ -2,10 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../hsi_python/.idea/hsi_python.iml" filepath="$PROJECT_DIR$/../hsi_python/.idea/hsi_python.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../maniLearnLib/.idea/maniLearnLib.iml" filepath="$PROJECT_DIR$/../maniLearnLib/.idea/maniLearnLib.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/manifold_learning.iml" filepath="$PROJECT_DIR$/.idea/manifold_learning.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../phd_research/.idea/phd_research.iml" filepath="$PROJECT_DIR$/../phd_research/.idea/phd_research.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../phd_research/projects/sakame/.idea/sakame.iml" filepath="$PROJECT_DIR$/../phd_research/projects/sakame/.idea/sakame.iml" />
     </modules>
   </component>
 </project>

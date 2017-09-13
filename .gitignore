@@ -4,3 +4,9 @@
 *.mat
 
 \.idea/
+
+src/python/utils/__pycache__/
+
+src/python/manifold_learning/__pycache__/
+
+src/python/data/__pycache__/

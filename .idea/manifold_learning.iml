@@ -6,9 +6,8 @@
     </content>
     <orderEntry type="jdk" jdkName="Python 3.5.4 (~/anaconda3/envs/manipy/bin/python3.5)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="maniLearnLib" />
-    <orderEntry type="module" module-name="phd_research" />
-    <orderEntry type="module" module-name="hsi_python" />
+    <orderEntry type="module" module-name="sakame" />
+    <orderEntry type="module" module-name="sakame" />
   </component>
   <component name="TestRunnerService">
     <option name="projectConfiguration" value="Nosetests" />
