@@ -11,7 +11,6 @@ from manifold_learning.lpp import LocalityPreservingProjections
 def swiss_roll_test():
 
 
-
     n_points = 1000
     X, color = datasets.samples_generator.make_s_curve(n_points,
                                                        random_state=0)
