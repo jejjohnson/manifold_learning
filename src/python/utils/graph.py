@@ -112,7 +112,6 @@ def maximum(A,B):
 # Find the Laplacian Matrix from an Adjacency Matrix
 def create_laplacian(Adjacency,
                      norm_lap=None,
-                     method='Personal',
                      sparse=None):
     """Finds the Graph Laplacian from a Weighted Adjacency Matrix
 
@@ -125,29 +124,13 @@ def create_laplacian(Adjacency,
     * Laplacian       - an NxN laplacian array
     * Diagonal        - an NxN diagonal array
     """
-
-    if method in ['personal', 'Personal']:
-
-        D = spdiags(data=np.squeeze(np.asarray(Adjacency.sum(axis=1))),
-                    diags=[0],
-                    m=Adjacency.shape[0],
-                    n=Adjacency.shape[0])
-        return D-Adjacency, D
-
-
-    elif method in ['sklearn', 'scikit']:
-
-        L, D = graph_laplacian(Adjacency, normed=norm_lap,
-                               return_diag=True)
-        D = spdiags(data=D,
-                    diags=[0],
-                    m=Adjacency.shape[0],
-                    n=Adjacency.shape[0])
-        return L, D
-
-    else:
-        raise ValueError('Unrecognized Graph Laplacian method'
-        'construction.')
+    L, D = graph_laplacian(Adjacency, normed=norm_lap,
+                           return_diag=True)
+    D = spdiags(data=D,
+                diags=[0],
+                m=Adjacency.shape[0],
+                n=Adjacency.shape[0])
+    return L, D
 
 
 
@@ -197,7 +180,7 @@ def laplacian_test():
     L, D, t = [], [], []
     for method in ['personal', 'sklearn']:
         t0 = time.time()
-        temp_L, temp_D = create_laplacian(A, method=method)
+        temp_L, temp_D = create_laplacian(A)
         t1 = time.time()
         L.append(temp_L); D.append(temp_D)
         t.append(t1-t0)

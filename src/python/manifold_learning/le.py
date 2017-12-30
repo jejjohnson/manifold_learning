@@ -15,7 +15,7 @@ from utils.graph import create_laplacian, create_adjacency, \
 from utils.eigenvalue_decomposition import EigSolver
 
 
-class LocalityPreservingProjections(BaseEstimator, TransformerMixin):
+class LaplacianEigenmaps(BaseEstimator):
     """ Scikit-Learn compatible class for Locality Preserving Projections
 
     Parameters
@@ -96,83 +96,84 @@ class LocalityPreservingProjections(BaseEstimator, TransformerMixin):
                               n_jobs=self.n_jobs)
 
         # compute the projections into the new space
-        self.eigVals, self.projection_ = self._spectral_embedding(X, W)
+        self.eigVals, self.embedding_ = self._spectral_embedding(X, W)
 
         return self
 
-    def transform(self, X):
-
+    # Compute the projection of X into the new space
+    def fit_transform(self, X):
         # check the array and see if it satisfies the requirements
         X = check_array(X)
-        if self.sparse:
-            return X.dot(self.projection_)
-        else:
-            return np.dot(X, self.projection_)
+        self.fit(X)
+
+        return self.embedding_
+
 
     def _spectral_embedding(self, X, W):
 
         # find the eigenvalues and eigenvectors
-        return linear_graph_embedding(adjacency=W, data=X,
-                                      norm_laplace=self.norm_laplace,
-                                      normalization=self.normalization,
-                                      eig_solver=self.eig_solver,
-                                      eigen_tol=self.eigen_tol)
+        return graph_embedding(adjacency=W, norm_laplace=self.norm_laplace,
+                               normalization=self.normalization,
+                               eig_solver=self.eig_solver,
+                               eig_tol=self.eigen_tol)
 
 
-def linear_graph_embedding(adjacency, data,
-                           norm_laplace = None,
-                           normalization='degree',
-                           n_components=2,
-                           eig_solver=None,
-                           eigen_tol=1E-12,
-                           sparse=True):
+def graph_embedding(adjacency,
+                    norm_laplace = None,
+                    norm_method = 'degree', normalization= None, mu=1.0,
+                    ss_potential=None, alpha=17.78,
+                    pl_potential=None, beta=1.0,
+                    n_components=2,eig_solver=None,eig_tol=1E-12,):
     """
-
     Returns
     -------
     eigenvalues
     eigenvectors
-    time elapse
-
+    TODO - time elapse
     """
     # create laplacian and diagonal degree matrix
     L, D = create_laplacian(adjacency, norm_lap=norm_laplace)
 
-    #----------------------------
-    # tune the eigenvalue problem
-    #----------------------------
+    #-------------------------------
+    # Tune the Eigenvalue Problem
+    #-------------------------------
     # choose which normalization parameter to use
-    if normalization in ['degree', 'Degree', None]:
-        B = D       # degree normalization
+    if norm_method in ['degree', 'Degree', None]:   # standard laplacian
+        B = D
 
-    elif normalization in ['identity']:
-        # identity normalization
+    elif normalization in ['identity']:     # analogous to ratio cute
         B = identity(n=np.shape(L)[0], format='csr')
 
     else:
         raise ValueError('Not a valid normalization parameter...')
 
-    # create the feature matrices
-    A = create_feature_mat(data, L, sparse=sparse)
-    B = create_feature_mat(data, B, sparse=sparse)
+    # choose the regularizer
+    if not ss_potential == None:            # spatial-spectral potential
+        if not alpha:
+            alpha = 17.78
+        alpha = get_alpha(alpha, L, ss_potential)
+        A = L + alpha * ss_potential
 
-    #-------------------------------------
-    # solve the eigenvalue problem
-    #-------------------------------------
-    # intialize eigenvalue solver function
+    elif not pl_potential == None:          # partial-labels potential
+        beta = get_alpha(beta, L, pl_potential)
+        A = L + beta * pl_potential
+
+    else:                       # no potential (standard Laplacian)
+        A = L
+
+    #-------------------------------
+    # Solve the Eigenvalue Problem
+    #-------------------------------
+
+    # initialize the EigSolver class
     eig_model = EigSolver(n_components=n_components,
                           eig_solver=eig_solver,
                           sparse=sparse,
-                          tol=eigen_tol,
+                          tol=eig_tol,
                           norm_laplace=norm_laplace)
 
     # return the eigenvalues and eigenvectors
     return eig_model.find_eig(A=A, B=B)
-
-
-
-
-
 
 def swiss_roll_test():
 
@@ -183,54 +184,37 @@ def swiss_roll_test():
 
     from sklearn import manifold, datasets
     from sklearn.manifold import SpectralEmbedding
-    from lpproj import LocalityPreservingProjection
 
     n_points = 1000
     X, color = datasets.samples_generator.make_s_curve(n_points,
                                                        random_state=0)
-    n_neighbors=20
+    n_neighbors=10
     n_components=2
 
-    # original lE algorithm
-
-
+    # original scikit-learn lE algorithm
     t0 = time()
-    ml_model = SpectralEmbedding(n_neighbors=n_neighbors,
+    ml_model = SpectralEmbedding(affinity='nearest_neighbors',
+                                 n_neighbors=n_neighbors,
                                  n_components=n_components)
     Y = ml_model.fit_transform(X)
     t1 = time()
 
     # 2d projection
-    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(5,10))
+    fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(5,10))
     ax[0].scatter(Y[:,0], Y[:,1], c=color, label='scikit')
-    ax[0].set_title('Sklearn-LE: {t:.2g}'.format(t=t1-t0))
+    ax[0].set_title('Sklearn LE: {t:.2g}'.format(t=t1-t0))
 
-
-    # Jakes LPP Algorithm
-
-    t0 = time()
-    ml_model = LocalityPreservingProjection(n_components=n_components)
-    ml_model.fit(X)
-    Y = ml_model.transform(X)
-    t1 = time()
-
-    ax[1].scatter(Y[:,0], Y[:,1], c=color, label='Jakes Algorithm')
-    ax[1].set_title('Jakes LPP: {t:.2g}'.format(t=t1-t0))
-
-    # my SSSE algorith,
+    # my Laplacian Eigenmaps algorithm
 
     t0 = time()
-    ml_model = LocalityPreservingProjections(weight='angle',
-                                             n_components=n_components,
-                                             n_neighbors=n_neighbors,
-                                             sparse=True,
-                                             eig_solver='dense')
+    ml_model = LaplacianEigenmaps(n_components=n_components,
+                                  n_neighbors=n_neighbors)
     ml_model.fit(X)
-    Y = ml_model.transform(X)
+    Y = ml_model.fit_transform(X)
     t1 = time()
 
-    ax[2].scatter(Y[:,0], Y[:,1], c=color, label='My LPP Algorithm')
-    ax[2].set_title('My LPP: {t:.2g}'.format(t=t1-t0))
+    ax[1].scatter(Y[:,0], Y[:,1], c=color, label='My LE Algorithm')
+    ax[1].set_title('My LE: {t:.2g}'.format(t=t1-t0))
 
     plt.show()
 

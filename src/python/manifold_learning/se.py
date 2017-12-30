@@ -9,7 +9,6 @@ from __future__ import absolute_import
 
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils import check_array
-from sklearn.neighbors import kneighbors_graph, NearestNeighbors
 
 import numpy as np
 from scipy import sparse
@@ -198,8 +197,7 @@ def graph_embedding(adjacency, data,
     TODO - time elapse
     """
     # create laplacian and diagonal degree matrix
-    L, D = create_laplacian(adjacency, norm_lap=norm_laplace,
-                            method=lap_method)
+    L, D = create_laplacian(adjacency, norm_lap=norm_laplace)
 
     #-------------------------------
     # Tune the Eigenvalue Problem
@@ -268,8 +266,6 @@ def get_spatial_coordinates(data):
     try:        # Try the case where we have a 3D data set
         nrows = data.shape[0]
         ncols = data.shape[1]
-        ndims = data.shape[2]
-
 
     except:     # Except the case where we have a 2D dataset
         nrows = data.shape[0]; ncols = 1
@@ -496,10 +492,7 @@ def sim_potential(X, potential='sim',
     Ws[same_data['rows'], same_data['cols']] = 1
 
     if potential in ['sim']:
-        return create_laplacian(Ws,
-                                norm_lap=norm_lap,
-                                method=method,
-                                sparse=sparse_mat)
+        return create_laplacian(Ws, norm_lap=norm_lap, sparse=sparse_mat)
 
     # group the data by the two columns (row, col)
     united_cols_grouped = united_data.groupby(['rows','cols'])
@@ -517,10 +510,7 @@ def sim_potential(X, potential='sim',
     Wd = sparse.csr_matrix((X.shape[0],X.shape[0]), dtype='int')
     Wd[diff_data['rows'], diff_data['cols']] = 1
 
-    return create_laplacian(Wd-Ws,
-                                norm_lap=norm_lap,
-                                method=method,
-                                sparse=sparse_mat)
+    return create_laplacian(Wd-Ws, norm_lap=norm_lap, sparse=sparse_mat)
 
 
 # Determine appropriate trade off parameter between L and D
